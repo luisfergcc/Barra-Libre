@@ -93,6 +93,7 @@ const EX = {
  'Single Leg Standing Calf Raise (Machine)':['Gemelo de pie unilateral','ge',10,15,0,60,'calf',['calf']],
  'Calf Raise (Dumbbell)':['Gemelo de pie con mancuerna','ge',12,20,0,60,'calf',['db']],
  'Crunch (Machine)':['Crunch en máquina','co',15,25,0,60,'core',['crunchm']],
+ 'Cable Crunch':['Crunch en polea','co',12,20,0,60,'core',['cable']],
  'Dead Bug':['Dead bug','co',8,12,0,45,'core',[]]
 };
 const SKIP = new Set(['Walking','Stretching']);
@@ -104,7 +105,7 @@ const ROUTINES = {
  d2:{code:'D2', title:'Espalda · Bíceps', warm:'short',
      ex:['Pull Up','Lat Pulldown (Cable)','Seated Row (Machine)','T Bar Row','Single Arm Lat Pulldown','Face Pull','Bicep Curl (Cable)','Cross Body Hammer Curl']},
  d3:{code:'D3', title:'Pierna', warm:'full',
-     ex:['Leg Press Horizontal (Machine)','Romanian Deadlift (Barbell)','Leg Extension (Machine)','Seated Leg Curl (Machine)','Hip Abduction (Machine)','Hip Adduction (Machine)','Single Leg Standing Calf Raise (Machine)']},
+     ex:['Leg Press (Machine)','Romanian Deadlift (Barbell)','Leg Extension (Machine)','Seated Leg Curl (Machine)','Hip Abduction (Machine)','Hip Adduction (Machine)','Single Leg Standing Calf Raise (Machine)']},
  d4:{code:'D4', title:'Hombro · Pecho', warm:'short', knee:true,
      ex:['Shoulder Press (Dumbbell)','Lateral Raise (Machine)','Single Arm Lateral Raise (Cable)','Chest Supported Reverse Fly (Dumbbell)','Incline Bench Press (Smith Machine)','Crunch (Machine)']}
 };
