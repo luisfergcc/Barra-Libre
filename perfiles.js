@@ -422,7 +422,7 @@ function deriveFromHevy(list){
   for (const k of order) for (const n of routines[k].ex) {
     const r = reps[n] || []; if (r.length < 3) continue;
     let lo = quant(r, .25), hi = quant(r, .75); if (hi - lo < 2) { const m = median(r); lo = Math.max(1, Math.round(m - 2)); hi = Math.round(m + 2); }
-    if (!EX[n]) { custom[n] = [n, '', lo, hi, 0, 90, 'other', []]; EX[n] = custom[n]; newCustom++; continue; }
+    if (!EX[n] || EX[n][9] === 'auto') { const d = (EX[n] || inferEx(n)).slice(); if (d[8] !== 't' && d[8] !== 'm') { d[2] = lo; d[3] = hi; } custom[n] = d; EX[n] = d; newCustom++; continue; }
     const m = EX[n]; if (m[8] === 't' || m[8] === 'm') continue;
     if (Math.abs(lo - m[2]) > 2 || Math.abs(hi - m[3]) > 3) rr[n] = [lo, hi, 0];
   }

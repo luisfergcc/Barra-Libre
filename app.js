@@ -79,6 +79,7 @@ async function loadAll(){
   S.kv = {}; for (const k of kvs) S.kv[k.id] = k.v;
   S.gyms = gyms;
   Object.assign(EX, kv('customEx', {}));
+  await fixAutoCustom();
   if (!S.gyms.length) { const g = {id:'g-main', name:'Mi gimnasio', eq:GYM_PRESETS.full.slice()}; S.gyms = [g]; await IDB.put('gyms', g); }
   const live = Object.values(S.app).find(s => s.status === 'live');
   if (live) S.live = live;
@@ -818,9 +819,10 @@ function finishHold(secs){
 }
 
 /* ---------- ejercicios propios ---------- */
-function sheetCustom(){
+function sheetCustom(edit){
+  const d = edit ? EX[edit] : null; S.cxEdit = edit || null;
   const mus = Object.entries(MUSCLES).map(([k,v]) => `<option value="${k}">${v}</option>`).join('');
-  openSheet(`<h3 class="sheet-t">Crear ejercicio</h3>
+  openSheet(`<h3 class="sheet-t">${d ? 'Editar ejercicio' : 'Crear ejercicio'}</h3>${d && d[9] === 'auto' ? `<p class="muted" style="font-size:13px;margin:0 0 8px">Viene de Hevy. ${d[1] ? 'He deducido los músculos por el nombre: corrígelos si no son.' : 'No he sabido deducir qué músculos trabaja: elígelos para que cuente en recuperación y volumen.'}</p>` : ''}
     <div class="stack" style="gap:10px">
       <label class="lbl">Nombre<input class="field" id="cxName" maxlength="40" placeholder="Remo Hammer en máquina" autocomplete="off"></label>
       <div class="form"><label>Músculo principal<select class="field" id="cxMus">${mus}</select></label><label>Secundario<select class="field" id="cxMus2"><option value="">Ninguno</option>${mus}</select></label></div>
@@ -830,23 +832,25 @@ function sheetCustom(){
       <label class="row" style="gap:8px;font-size:15px"><input type="checkbox" id="cxKnee"> Carga la rodilla (pedirá el semáforo)</label>
       <div class="row"><button class="btn primary" id="cxSave">${S.live ? 'Crear y añadir' : 'Crear'}</button><button class="btn ghost" data-sheetclose>Cancelar</button></div>
     </div>`);
-  setTimeout(() => { const x = $('#cxName'); if (x) x.focus(); }, 50);
+  if (d) { const ms = (d[1] || '').split(' ').filter(Boolean); $('#cxName').value = d[0]; if (ms[0]) $('#cxMus').value = ms[0]; $('#cxMus2').value = ms[1] || ''; $('#cxEq').value = (d[7] || [])[0] || ''; $('#cxKind').value = d[8] === 't' ? 't' : 'r'; $('#cxLo').value = d[2]; $('#cxHi').value = d[3]; $('#cxKnee').checked = !!d[4]; $('#cxSave').textContent = 'Guardar'; }
+  else setTimeout(() => { const x = $('#cxName'); if (x) x.focus(); }, 50);
 }
 async function saveCustom(){
   const es = $('#cxName').value.trim(), lo = toNum($('#cxLo').value), hi = toNum($('#cxHi').value);
   if (es.length < 3) { toast('Ponle un nombre de al menos 3 letras.'); return; }
   if (!lo || !hi || lo > hi || hi > 300) { toast('Revisa el rango (mínimo y máximo).'); return; }
   const custom = kv('customEx', {});
-  let n = es; if (EX[n] && !custom[n]) n = es + ' (propio)';
+  let n = S.cxEdit || es; if (!S.cxEdit && EX[n] && !custom[n]) n = es + ' (propio)';
   const m1 = $('#cxMus').value, m2 = $('#cxMus2').value, mus = [m1].concat(m2 && m2 !== m1 ? [m2] : []).join(' ');
   const pats = {}; for (const k in EX) if (meta(k).mus[0] === m1) pats[meta(k).pat] = (pats[meta(k).pat] || 0) + 1;
   const pat = Object.entries(pats).sort((a,b) => b[1] - a[1])[0];
   const time = $('#cxKind').value === 't';
   const def = [es, mus, Math.round(lo), Math.round(hi), $('#cxKnee').checked ? 1 : 0, time ? 60 : 90, pat ? pat[0] : 'other', $('#cxEq').value ? [$('#cxEq').value] : []].concat(time ? ['t'] : []);
-  EX[n] = def; await setKv('customEx', {...custom, [n]:def});
-  closeSheet();
-  if (S.live) { S.live.ex.push(exEntry(n)); scheduleSave(); }
-  render(); toast(`«${es}» creado`);
+  const editing = !!S.cxEdit; if (editing && EX[n] && EX[n][9]) { while (def.length < 9) def.push(null); def[9] = 'edit'; } // ya revisado a mano: no se vuelve a deducir
+  EX[n] = def; await setKv('customEx', {...custom, [n]:def}); S.cxEdit = null;
+  closeSheet(); S.histCache = {}; REC_CACHE = null;
+  if (S.live && !editing) { S.live.ex.push(exEntry(n)); scheduleSave(); }
+  render(); toast(editing ? `«${es}» actualizado` : `«${es}» creado`);
 }
 
 /* ---------- semana de descarga ---------- */
@@ -1460,6 +1464,8 @@ function renderRecovery(){
       <p class="muted" style="margin:0;font-size:14px">${esc(nx.why)}</p>
       <div class="row" style="margin-top:10px">${ORDER.map(k => `<span class="pill ${recClass(nx.ready[k])}">${ROUTINES[k].code} ${nx.ready[k]} %</span>`).join('')}</div>
     </section>
+    ${(() => { const cut = Date.now() - 100*36e5, unk = [...new Set(S.all.filter(s => +s.date >= cut).flatMap(s => s.ex.map(e => e.n)).filter(n => !meta(n).mus.length && !meta(n).mins))];
+      return unk.length ? `<section class="card pad stack" style="gap:8px"><div class="tipc warn"><div class="tipc-b"><b>${pl(unk.length, 'ejercicio')} de tus últimos días no ${unk.length === 1 ? 'cuenta' : 'cuentan'} en la recuperación</b> porque no sé qué músculos trabaja${unk.length === 1 ? '' : 'n'}. Tócalo para elegirlos:</div><div class="chip-row">${unk.map(n => `<button class="chip small" data-cxedit="${esc(n)}">${esc(meta(n).es)}</button>`).join('')}</div></div></section>` : ''; })()}
     <section class="card pad"><div class="rec-list">${rows}</div></section>
     <p class="faint" style="font-size:12px;margin:0">Cálculo orientativo: cada serie de trabajo carga sus músculos principales y la carga se recupera en 2-3 días según el músculo. Si notas agujetas fuertes o la rodilla cargada, manda lo que sientes.</p>
   </div>`;
@@ -1590,7 +1596,7 @@ function renderMore(){
     <section class="card pad stack" style="gap:10px">
       <header class="row" style="justify-content:space-between"><h2>Tus ejercicios</h2><button class="btn small" data-cxnew>+ Crear</button></header>
       <p class="muted" style="margin:0;font-size:14px">Para máquinas que no están en la lista. Aparecen en el buscador al añadir un ejercicio.</p>
-      ${Object.keys(kv('customEx', {})).length ? `<div class="sheet-list">${Object.entries(kv('customEx', {})).map(([n,d]) => `<div class="sheet-item sess-row"><span><b>${esc(d[0])}</b><small>${d[1].split(' ').map(x => MUSCLES[x]).join(' · ')} · ${d[2]}-${d[3]} ${d[8] === 't' ? 's' : 'reps'}</small></span><button class="btn small ghost" data-cxdel="${esc(n)}" aria-label="Quitar">✕</button></div>`).join('')}</div>` : ''}
+      ${Object.keys(kv('customEx', {})).length ? `<div class="sheet-list">${Object.entries(kv('customEx', {})).map(([n,d]) => `<div class="sheet-item sess-row"><button class="ex-name" data-cxedit="${esc(n)}" style="text-align:left"><b>${esc(d[0])}</b><small style="display:block">${d[1] ? d[1].split(' ').map(x => MUSCLES[x]).join(' · ') : '⚠︎ sin músculos'} · ${d[2]}-${d[3]} ${d[8] === 't' ? 's' : 'reps'}${d[9] ? ' · de Hevy' : ''}</small></button><button class="btn small ghost" data-cxdel="${esc(n)}" aria-label="Quitar">✕</button></div>`).join('')}</div>` : ''}
       <div class="row" style="gap:8px"><button class="btn" style="flex:1" data-library>▶︎ Biblioteca (${Object.keys(EX).length})</button><button class="btn ghost" style="flex:1" data-plates="">🏋 Discos</button></div>
     </section>
     <section class="card pad stack" style="gap:10px">
@@ -1617,6 +1623,52 @@ function renderMore(){
   </div>`;
 }
 
+/* ---------- ejercicios que la app no conoce (p. ej. un Hevy en español): se deducen músculos y patrón por el nombre ----------
+   Sin esto no cuentan en recuperación, volumen ni análisis. Se puede corregir a mano en Más → Tus ejercicios. */
+const INFER = [
+  [/leg curl|curl femoral|curl de pierna|curl (de )?isquio|isquio|hamstring|nordic|nordico/, 'fe', 'leg_curl', 0],
+  [/romanian|rumano|deadlift|peso muerto|good morning|buenos dias|hiperext|hyperext|back extension|extension (de )?espalda|lumbar/, 'fe gl', 'hinge', 0],
+  [/hip thrust|empuje de cadera|glute|gluteo|bridge|puente|patada/, 'gl fe', 'hip', 0],
+  [/abduct|abduc/, 'gl', 'abd', 0], [/adduct|aduc/, 'ad', 'add', 0],
+  [/calf|gemelo|pantorrilla|soleo|talones|de talon/, 'ge', 'calf', 0],
+  [/leg extension|extension de (cuadriceps|pierna)|extensiones de pierna|extension de rodilla/, 'cu', 'knee_ext', 1],
+  [/squat|sentadilla|leg press|prensa|hack|lunge|zancada|estocada|step ?up|split|bulgar|pistol|subida al cajon/, 'cu gl', 'squat', 1],
+  [/tricep|pushdown|skull|frances|kickback|patada de tricep|copa|extension (de )?(brazo|codo)/, 'tr', 'tri', 0],
+  [/pulldown|jalon|pull ?up|pull-up|dominad|chin ?up|lat /, 'es bi', 'pull_v', 0],
+  [/face ?pull|reverse fly|pajaro|posterior|rear delt|deltoides trasero/, 'ho es', 'rear', 0],
+  [/row|remo|pullover|jersey/, 'es bi', 'row', 0],
+  [/lateral raise|elevacion(es)? lateral|laterales|lateral/, 'ho', 'lat_raise', 0],
+  [/front raise|elevacion(es)? frontal|frontales/, 'ho', 'front_raise', 0],
+  [/shoulder press|overhead press|press militar|press de hombro|hombro|arnold|press por encima|deltoid/, 'ho tr', 'press_v', 0],
+  [/shrug|encogimiento|trapecio/, 'es', 'shrug', 0],
+  [/curl|bicep|martillo|hammer|predicador|scott/, 'bi', 'curl', 0],
+  [/fly|apertura|pec deck|contractor|crossover|cruce|mariposa/, 'pe', 'fly', 0],
+  [/inclin.*(press|banca|pecho)|(press|banca).*inclin/, 'pe ho tr', 'press_inc', 0],
+  [/bench|banca|chest|pecho|press plano|push ?up|flexion|dip|fondos/, 'pe tr', 'press_h', 0],
+  [/crunch|abdominal|abs\b|plank|plancha|sit ?up|leg raise|elevacion(es)? de piernas|russian|ruso|rueda|ab wheel|core|oblicu|woodchop|lenador|pallof|hollow|dead ?bug/, 'co', 'core', 0]
+];
+const normName = n => String(n).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[()]/g, ' ').replace(/\s+/g, ' ').trim();
+function inferEx(name, lo = 8, hi = 12){
+  const t = normName(name), r = INFER.find(([re]) => re.test(t));
+  const eq = /barbell|barra(?! de)|\bbb\b/.test(t) ? ['bb'] : /dumbbell|mancuerna/.test(t) ? ['db'] : /cable|polea/.test(t) ? ['cable'] : /smith|multipower/.test(t) ? ['smith'] : /band|banda|goma/.test(t) ? ['band'] : /kettlebell|pesa rusa/.test(t) ? ['kb'] : [];
+  const time = r && r[2] === 'core' && /plank|plancha|hold|isometric|hollow|aguante/.test(t);
+  const big = r && ['squat','hinge','press_h','press_inc','press_v','row','pull_v'].includes(r[2]);
+  /* posición 8: unidad ('t' = segundos); posición 9: 'auto' = deducido de Hevy (se puede volver a deducir) */
+  return [name, r ? r[1] : '', time ? 20 : lo, time ? 60 : hi, r ? r[3] : 0, time ? 60 : big ? 120 : 75, r ? r[2] : 'other', eq, time ? 't' : null, 'auto'];
+}
+/* Crea (o completa) el ejercicio propio de un nombre desconocido; devuelve true si lo ha creado */
+function ensureEx(name, custom){
+  if (EX[name] && !(EX[name][9] === 'auto' && !EX[name][1])) return false;
+  const old = EX[name], def = inferEx(name, old ? old[2] : 8, old ? old[3] : 12);
+  EX[name] = def; custom[name] = def; return true;
+}
+/* Los ejercicios creados por la 1.7.2 sin músculos se completan al abrir */
+async function fixAutoCustom(){
+  const c = {...kv('customEx', {})}; let n = 0;
+  for (const [k, d] of Object.entries(c)) if (!d[1] && d[6] === 'other') { const r = inferEx(k, d[2], d[3]); if (r[1]) { c[k] = r; EX[k] = r; n++; } }
+  if (n) await setKv('customEx', c);
+}
+
 /* ---------- importar CSV de Hevy ---------- */
 function parseCSV(text){
   const rows = []; let row = [], f = '', q = false;
@@ -1633,8 +1685,12 @@ function parseCSV(text){
 }
 const MONTHS = {ene:1,jan:1,feb:2,mar:3,abr:4,apr:4,may:5,jun:6,jul:7,ago:8,aug:8,sep:9,sept:9,oct:10,nov:11,dic:12,dec:12};
 function hevyDate(s){
-  const m = /^(\d{1,2}) ([a-zA-Zé]+)\.? (\d{4}),? (\d{1,2}):(\d{2})/.exec(s.trim());
-  if (m) { const k = m[2].toLowerCase(); const mo = MONTHS[k.slice(0,4)] || MONTHS[k.slice(0,3)]; if (mo) return `${m[3]}-${pad(mo)}-${pad(m[1])}T${pad(m[4])}:${m[5]}`; }
+  s = String(s || '').trim();
+  const ampm = h => { const pm = /\b(p\.? ?m\.?)$/i.test(s), am = /\b(a\.? ?m\.?)$/i.test(s); h = +h; return pm && h < 12 ? h + 12 : am && h === 12 ? 0 : h; };
+  let m = /^(\d{1,2}) ([a-zA-Zé]+)\.? (\d{4}),? (\d{1,2}):(\d{2})/.exec(s);
+  if (m) { const k = m[2].toLowerCase(); const mo = MONTHS[k.slice(0,4)] || MONTHS[k.slice(0,3)]; if (mo) return `${m[3]}-${pad(mo)}-${pad(m[1])}T${pad(ampm(m[4]))}:${m[5]}`; }
+  m = /^([a-zA-Zé]+)\.? (\d{1,2}),? (\d{4}),? (\d{1,2}):(\d{2})/.exec(s);
+  if (m) { const k = m[1].toLowerCase(); const mo = MONTHS[k.slice(0,4)] || MONTHS[k.slice(0,3)]; if (mo) return `${m[3]}-${pad(mo)}-${pad(m[2])}T${pad(ampm(m[4]))}:${m[5]}`; }
   const d = new Date(s); return isNaN(d) ? null : isoLocal(d);
 }
 async function importCsv(file){
@@ -1643,13 +1699,14 @@ async function importCsv(file){
     const rows = parseCSV((await file.text()).replace(/^﻿/, '')); const head = rows.shift().map(h => h.trim());
     const ix = k => head.indexOf(k);
     if (['title','start_time','exercise_title','set_type','weight_kg','reps'].some(k => ix(k) < 0)) throw new Error('Este archivo no parece el workouts.csv de Hevy.');
-    const sessions = new Map(), cardioRows = new Map();
+    const sessions = new Map(), cardioRows = new Map(), custom = {...kv('customEx', {})}; let created = 0;
     for (const r of rows) {
       const name = r[ix('exercise_title')];
       if (CARDIO_HEVY[name]) { const d = hevyDate(r[ix('start_time')]); const min = (toNum(r[ix('duration_seconds')]) || 0) / 60, km = toNum(r[ix('distance_km')]) || 0;
         if (d && (min || km)) { const id = 'hc' + d.replace(/\D/g,'') + CARDIO_HEVY[name]; const c = cardioRows.get(id) || {id, date:d, type:CARDIO_HEVY[name], min:0, km:0}; c.min += min; c.km += km; cardioRows.set(id, c); }
         continue; }
       if (SKIP.has(name)) continue;
+      if (!EX[name] && ensureEx(name, custom)) created++;
       let reps = toNum(r[ix('reps')]); if (!reps && meta(name).time && ix('duration_seconds') >= 0) reps = toNum(r[ix('duration_seconds')]); if (!reps) continue;
       const type = ({warmup:'w', dropset:'d', failure:'f'})[r[ix('set_type')]] || 'n'; if (type === 'w') continue;
       const date = hevyDate(r[ix('start_time')]); if (!date) continue;
@@ -1671,6 +1728,7 @@ async function importCsv(file){
       const list = [...merged.values()].sort((a,b) => a.date < b.date ? -1 : 1);
       S.hevy[k] = list; await putHevy(k);
     }
+    if (created) await setKv('customEx', custom);
     await setKv('lastHevy', Date.now());
     const rt = typeof hevyAfterImport === 'function' ? await hevyAfterImport() : '';
     rebuild();
@@ -1801,6 +1859,7 @@ document.addEventListener('click', async e => {
   const pcs = t.closest('[data-pcsides]'); if (pcs) { PC.sides = +pcs.dataset.pcsides; document.querySelectorAll('[data-pcsides]').forEach(b => b.classList.toggle('on', b === pcs)); drawPlates(); return; }
   const pcp = t.closest('[data-pcplate]'); if (pcp) { const v = +pcp.dataset.pcplate; PC.plates = PC.plates.includes(v) ? PC.plates.filter(x => x !== v) : PC.plates.concat(v); await setKv('plates', PC.plates); pcp.classList.toggle('on'); drawPlates(); return; }
   if (t.closest('[data-cxnew]')) return sheetCustom();
+  const cxe = t.closest('[data-cxedit]'); if (cxe) return sheetCustom(cxe.dataset.cxedit);
   if (t.closest('#cxSave')) return saveCustom();
   const cxd = t.closest('[data-cxdel]'); if (cxd) { const c = {...kv('customEx', {})}; delete c[cxd.dataset.cxdel]; await setKv('customEx', c); render(); toast('Ejercicio quitado de la lista'); return; }
   /* Calendario */
