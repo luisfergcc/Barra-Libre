@@ -1713,10 +1713,12 @@ function render(){
   updateStatus();
   const v = $('#view');
   if (!S.ready) { v.innerHTML = '<div class="card empty"><p>Abriendo tus datos…</p></div>'; return; }
-  if (S.tab === 'train') v.innerHTML = !S.live && S.wiz ? renderWizard() : !S.live && S.home && !S.lastDone ? renderHome()
+  const LV = !S.live && curProf().kind === 'lv';
+  if (S.tab === 'train') v.innerHTML = !S.live && S.wiz ? renderWizard() : !S.live && S.home && !S.lastDone ? renderHome() : LV ? renderLv()
     : `<div class="stack">${S.lastDone && !S.live ? renderSummary() : ''}${S.live ? renderLive() : renderPicker()}</div>`;
+  if (S.tab === 'prog' && LV) { v.innerHTML = renderLvProgress(); return; }
   if (S.tab === 'prog') { v.innerHTML = renderProgress(); weeksChart($('#chWeeks')); drawExDetail(); }
-  if (S.tab === 'rec') v.innerHTML = renderRecovery();
+  if (S.tab === 'rec') v.innerHTML = LV ? `<div class="card empty"><h2>Recuperación</h2><p>En el programa por niveles la carga la decide el semáforo de cada día, no el cálculo de recuperación muscular.</p></div>` : renderRecovery();
   if (S.tab === 'body') { if (curProf().person !== 'me') { v.innerHTML = `<div class="card empty"><h2>Cuerpo</h2><p>El peso, las medidas y las fotos son de Luis. Cambia al perfil de Luis para verlos.</p><button class="btn primary" data-home>Cambiar de perfil</button></div>`; return; } v.innerHTML = renderBody(); drawBodyCharts(); }
   if (S.tab === 'more') v.innerHTML = (typeof renderProfilesMore === 'function' ? renderProfilesMore() : '') + renderMore();
 }
