@@ -1,5 +1,5 @@
 // Cambia VERSION en cada actualización para que el iPhone descargue la nueva versión
-const VERSION = 'barralibre-1.1.0';
+const VERSION = 'barralibre-1.2.0';
 const FILES = ['./', 'index.html', 'style.css', 'data.js', 'app.js', 'manifest.webmanifest', 'icon-180.png', 'icon-512.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(VERSION).then(c => c.addAll(FILES))); self.skipWaiting(); });
 self.addEventListener('activate', e => {

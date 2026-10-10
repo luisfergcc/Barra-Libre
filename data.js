@@ -14,7 +14,7 @@ const EQUIP = {
   pull:'Barra de dominadas', dip:'Paralelas', lp:'Prensa', lext:'Extensión de cuádriceps', lcurl:'Curl femoral',
   abd:'Abductores', add:'Aductores', calf:'Gemelo en máquina', pec:'Peck deck', cpress:'Press de pecho en máquina',
   latm:'Jalón al pecho', rowm:'Remo en máquina', tbar:'Remo en T', latrm:'Laterales en máquina', rearm:'Pájaros en máquina',
-  crunchm:'Crunch en máquina', hyper:'Banco de hiperextensiones', dipm:'Fondos en máquina', band:'Bandas elásticas'
+  crunchm:'Crunch en máquina', hyper:'Banco de hiperextensiones', dipm:'Fondos en máquina', hipm:'Hip thrust en máquina', band:'Bandas elásticas'
 };
 const GYM_PRESETS = {
   full: Object.keys(EQUIP),
@@ -94,7 +94,14 @@ const EX = {
  'Calf Raise (Dumbbell)':['Gemelo de pie con mancuerna','ge',12,20,0,60,'calf',['db']],
  'Crunch (Machine)':['Crunch en máquina','co',15,25,0,60,'core',['crunchm']],
  'Cable Crunch':['Crunch en polea','co',12,20,0,60,'core',['cable']],
- 'Dead Bug':['Dead bug','co',8,12,0,45,'core',[]]
+ 'Dead Bug':['Dead bug','co',8,12,0,45,'core',[]],
+ 'Hip Thrust (Barbell)':['Hip thrust con barra','gl fe',8,12,0,120,'hip',['bb','bench']],
+ 'Hip Thrust (Machine)':['Hip thrust en máquina','gl fe',8,12,0,120,'hip',['hipm']],
+ 'Bulgarian Split Squat':['Sentadilla búlgara','cu gl',8,12,1,120,'squat',['db','bench']],
+ 'Reverse Lunge (Dumbbell)':['Zancada atrás con mancuernas','cu gl',8,12,1,90,'squat',['db']],
+ 'Lying Leg Curl (Machine)':['Femoral tumbado','fe',10,12,0,90,'leg_curl',['lcurl']],
+ 'Seated Calf Raise':['Gemelo sentado (sóleo)','ge',12,20,0,60,'calf',['calf']],
+ 'Incline Curl (Dumbbell)':['Curl inclinado con mancuernas','bi',10,12,0,75,'curl',['db','bench']]
 };
 const SKIP = new Set(['Walking','Stretching']);
 
@@ -117,3 +124,84 @@ const WARM = {
 };
 const KNEE_BLOCK = ['Sentadilla isométrica en pared · 2 × 45 s','Extensión terminal de rodilla · 2 × 15 por pierna','Bajada lenta desde escalón · 2 × 8 por pierna'];
 const PLAN_VERSION = 'v1.1';
+
+/* =====================================================================
+   CIENCIA: base de estudios (revisada el 10/10/2026)
+   tema: hip = hipertrofia · fuerza · rodilla = rodilla y cadera · correr · movilidad
+   ===================================================================== */
+const EVIDENCE = [
+ {id:'pelland', tema:'hip', cita:'Pelland y col.', rev:'Sports Medicine', year:2026, tipo:'Meta-regresión',
+  hallazgo:'Más series semanales dan más hipertrofia y fuerza, con rendimientos decrecientes (más marcados en fuerza). La frecuencia apenas influye en la hipertrofia con el volumen igualado, pero sí ayuda a la fuerza. Contar las series indirectas como media serie es lo que mejor predice los resultados.',
+  regla:'Cuenta las series de cada músculo: 1 si es el principal y 0,5 si trabaja de apoyo. Apunta a 10-20 por semana.'},
+ {id:'schoenfeld17v', tema:'hip', cita:'Schoenfeld, Ogborn y Krieger', rev:'Journal of Sports Sciences', year:2017, tipo:'Metaanálisis',
+  hallazgo:'Hacer 10 o más series por músculo a la semana produjo más crecimiento que hacer menos de 5.', regla:'Por debajo de 10 series semanales, ese músculo tiene margen claro para crecer más.'},
+ {id:'schoenfeld18f', tema:'hip', cita:'Schoenfeld, Grgic y Krieger', rev:'Journal of Sports Sciences', year:2019, tipo:'Metaanálisis',
+  hallazgo:'Con el mismo volumen semanal, entrenar un músculo 1 o 2+ veces por semana dio un crecimiento prácticamente igual.', regla:'Lo que manda es el volumen total semanal. Repartirlo en más días es útil cuando una sola sesión no da para todo.'},
+ {id:'remmert25', tema:'hip', cita:'Remmert y col.', rev:'SportRxiv (preprint, sin revisión por pares)', year:2025, tipo:'Meta-regresión',
+  hallazgo:'Por sesión, la hipertrofia deja de mejorar de forma detectable a partir de unas 11 series fraccionales por músculo; la fuerza, a partir de unas 2 series directas.', regla:'Más de ~11 series de un músculo en un día: mejor pasar parte a otro día o quitarlas para acortar la sesión.'},
+ {id:'refalo23', tema:'hip', cita:'Refalo y col.', rev:'Sports Medicine', year:2023, tipo:'Metaanálisis',
+  hallazgo:'Llegar al fallo muscular no produjo más hipertrofia que quedarse cerca de él. La relación entre cercanía al fallo y crecimiento no es lineal.', regla:'Deja 1-2 repeticiones en reserva; el fallo no es necesario y cansa más (y en ejercicios de rodilla, quédate en 2).'},
+ {id:'lopez21', tema:'fuerza', cita:'Lopez y col.', rev:'Medicine & Science in Sports & Exercise', year:2021, tipo:'Metaanálisis en red',
+  hallazgo:'Con series exigentes, cargas bajas, medias y altas dan una hipertrofia similar. Para la fuerza, las cargas altas y medias superan a las bajas.', regla:'Para crecer vale cualquier rango exigente (6-30 reps). Para estar fuerte, mete algo de trabajo pesado (6-8 reps) en los básicos.'},
+ {id:'singer24', tema:'hip', cita:'Singer y col.', rev:'Frontiers in Sports and Active Living', year:2024, tipo:'Metaanálisis bayesiano',
+  hallazgo:'Descansar más de 60 s entre series puede dar un pequeño beneficio en hipertrofia; por encima de 90 s no se vieron diferencias claras.', regla:'Descansa al menos 90 s, y 2-3 min en ejercicios grandes si notas que pierdes muchas repeticiones de una serie a otra.'},
+ {id:'schoenfeld16r', tema:'fuerza', cita:'Schoenfeld y col.', rev:'Journal of Strength and Conditioning Research', year:2016, tipo:'Ensayo controlado',
+  hallazgo:'En hombres entrenados, descansar 3 min entre series dio más fuerza y más grosor muscular que descansar 1 min.', regla:'En los básicos pesados, descansos largos (2-3 min).'},
+ {id:'plotkin22', tema:'hip', cita:'Plotkin y col.', rev:'PeerJ', year:2022, tipo:'Ensayo controlado',
+  hallazgo:'Progresar sumando repeticiones o sumando peso dio una hipertrofia similar.', regla:'Tu doble progresión (reps primero, luego peso) es válida.'},
+ {id:'wolf23', tema:'hip', cita:'Wolf y col.', rev:'International Journal of Strength and Conditioning', year:2023, tipo:'Metaanálisis',
+  hallazgo:'El recorrido completo dio un crecimiento igual o ligeramente mayor que el parcial; los parciales con el músculo estirado podrían ser incluso mejores (evidencia aún tentativa).', regla:'Prioriza recorridos largos, sobre todo la parte en la que el músculo está estirado.'},
+ {id:'pedrosa22', tema:'hip', cita:'Pedrosa y col.', rev:'European Journal of Sport Science', year:2022, tipo:'Ensayo controlado',
+  hallazgo:'En la extensión de cuádriceps, trabajar el tramo con la rodilla más doblada (músculo estirado) dio más hipertrofia que el tramo final.', regla:'En la extensión, céntrate en el tramo de 90° a 45°.'},
+ {id:'maeo21', tema:'hip', cita:'Maeo y col.', rev:'Medicine & Science in Sports & Exercise', year:2021, tipo:'Ensayo controlado',
+  hallazgo:'El curl femoral sentado hizo crecer más los isquiotibiales que el curl tumbado.', regla:'Para el femoral, prioriza la máquina sentada.'},
+ {id:'maeo23', tema:'hip', cita:'Maeo y col.', rev:'European Journal of Sport Science', year:2023, tipo:'Ensayo controlado',
+  hallazgo:'El tríceps creció alrededor de un 40 % más con extensiones con el brazo por encima de la cabeza que con extensiones en polea alta.', regla:'Mantén una extensión de tríceps tras nuca en tu rutina.'},
+ {id:'nascimento18', tema:'rodilla', cita:'Nascimento y col.', rev:'Journal of Orthopaedic & Sports Physical Therapy', year:2018, tipo:'Metaanálisis',
+  hallazgo:'En dolor femoropatelar, fortalecer cadera + rodilla redujo el dolor y mejoró la actividad más que fortalecer solo la rodilla.', regla:'Abductores y glúteo, al menos 2 veces por semana, además del cuádriceps.'},
+ {id:'willy19', tema:'rodilla', cita:'Willy y col.', rev:'JOSPT · Guía de práctica clínica', year:2019, tipo:'Guía clínica',
+  hallazgo:'Para el dolor femoropatelar recomienda ejercicio de cadera y rodilla como base, empezando por la cadera posterolateral; reentrenar la zancada al correr puede ayudar.', regla:'Ejercicio de cadera + cuádriceps como base del cuidado de tu rodilla.'},
+ {id:'powers14', tema:'rodilla', cita:'Powers y col. · Steinkamp y col.', rev:'JOSPT 2014 · Am J Sports Med 1993', year:2014, tipo:'Estudios biomecánicos',
+  hallazgo:'Entre 90° y 45° de flexión, la sentadilla carga más la rótula que la extensión de cuádriceps. En la extensión, la carga sobre la rótula sube en los últimos grados hasta estirar; en la prensa y la sentadilla sube cuanto más doblas la rodilla.', regla:'Extensión: tramo 90°-45°. Prensa y sentadilla: profundidad hasta donde el semáforo siga en verde.'},
+ {id:'bricca19', tema:'rodilla', cita:'Bricca y col.', rev:'British Journal of Sports Medicine', year:2019, tipo:'Revisión sistemática',
+  hallazgo:'El ejercicio que carga la rodilla no parece dañar el cartílago en personas con riesgo de artrosis o con artrosis (evidencia de calidad baja).', regla:'Cargar la rodilla de forma progresiva no es el enemigo; el dolor que empeora al día siguiente sí es la señal para ajustar.'},
+ {id:'afonso21', tema:'movilidad', cita:'Afonso y col.', rev:'Healthcare', year:2021, tipo:'Metaanálisis',
+  hallazgo:'El entrenamiento de fuerza mejoró el rango de movimiento lo mismo que los estiramientos.', regla:'Ejercicios con recorrido largo (rumano, sentadilla a cajón cada vez más baja, hip thrust) también te dan movilidad de cadera.'},
+ {id:'lenhart14', tema:'correr', cita:'Lenhart y col.', rev:'Medicine & Science in Sports & Exercise', year:2014, tipo:'Estudio biomecánico',
+  hallazgo:'Aumentar la cadencia un 10 % redujo la fuerza máxima sobre la articulación femoropatelar alrededor de un 14 %.', regla:'Al trotar, pasos un poco más cortos y rápidos (+5-10 % de cadencia).'},
+ {id:'nielsen14', tema:'correr', cita:'Nielsen y col.', rev:'Journal of Orthopaedic & Sports Physical Therapy', year:2014, tipo:'Estudio de cohorte',
+  hallazgo:'Los corredores novatos que aumentaban su distancia semanal más de un 30 % tenían más lesiones relacionadas con la distancia, entre ellas el dolor femoropatelar.', regla:'Sube los km de carrera poco a poco (lejos de +30 % semanal).'},
+ {id:'lauersen14', tema:'correr', cita:'Lauersen, Bertelsen y Andersen', rev:'British Journal of Sports Medicine', year:2014, tipo:'Metaanálisis',
+  hallazgo:'El entrenamiento de fuerza redujo las lesiones deportivas a menos de un tercio y casi a la mitad las de sobrecarga.', regla:'Si corres, no sueltes el día de pierna.'},
+ {id:'blagrove18', tema:'correr', cita:'Blagrove, Howatson y Hayes', rev:'Sports Medicine', year:2018, tipo:'Revisión sistemática',
+  hallazgo:'Añadir fuerza al entrenamiento de carrera mejoró la economía de carrera en corredores de fondo.', regla:'Fuerza de pierna 1-2 veces por semana te hace correr con menos gasto.'},
+ {id:'alentorn17', tema:'correr', cita:'Alentorn-Geli y col.', rev:'Journal of Orthopaedic & Sports Physical Therapy', year:2017, tipo:'Metaanálisis',
+  hallazgo:'Los corredores recreativos tenían menos artrosis de cadera y rodilla (3,5 %) que los sedentarios (10,2 %) y los corredores de élite (13,3 %).', regla:'Correr de forma recreativa no es malo para las rodillas.'}
+];
+const EV = Object.fromEntries(EVIDENCE.map(e => [e.id, e]));
+const TEMAS = {hip:'Hipertrofia', fuerza:'Fuerza', rodilla:'Rodilla y cadera', movilidad:'Movilidad', correr:'Correr'};
+
+/* Músculos grandes: más margen de crecimiento y más impacto en el físico */
+const BIG = ['cu','gl','es','pe','fe'];
+
+/* Consejo basado en estudios para ejercicios concretos */
+const EX_TIPS = {
+ 'Overhead Triceps Extension (Cable)':{ev:'maeo23', txt:'Brazo por encima de la cabeza: el tríceps creció ~40 % más que en polea alta. Es tu mejor ejercicio de tríceps.'},
+ 'Overhead Triceps Extension (Dumbbell)':{ev:'maeo23', txt:'Brazo por encima de la cabeza: el tríceps creció ~40 % más que en polea alta.'},
+ 'Triceps Pushdown':{ev:'maeo23', txt:'Suma, pero la versión tras nuca hizo crecer más el tríceps. Si vas justo de tiempo, prioriza la tras nuca.'},
+ 'Triceps Rope Pushdown':{ev:'maeo23', txt:'Suma, pero la versión tras nuca hizo crecer más el tríceps.'},
+ 'Seated Leg Curl (Machine)':{ev:'maeo21', txt:'Sentado hace crecer más el femoral que tumbado. Bien elegido.'},
+ 'Lying Leg Curl (Machine)':{ev:'maeo21', txt:'Si hay máquina sentada, el femoral creció más con ella.'},
+ 'Leg Extension (Machine)':{ev:'pedrosa22', txt:'Céntrate en el tramo de 90° a 45°: más crecimiento con el músculo estirado y menos carga sobre la rótula.'},
+ 'Leg Press (Machine)':{ev:'powers14', txt:'La rótula se carga más cuanto más doblas la rodilla: baja hasta donde el semáforo siga en verde.'},
+ 'Leg Press Horizontal (Machine)':{ev:'powers14', txt:'La rótula se carga más cuanto más doblas la rodilla: baja hasta donde el semáforo siga en verde.'},
+ 'Goblet Box Squat':{ev:'afonso21', txt:'Baja la altura del cajón con las semanas: ganas cuádriceps y movilidad de cadera a la vez.'},
+ 'Romanian Deadlift (Barbell)':{ev:'afonso21', txt:'Recorrido largo con el femoral estirado: crecimiento y movilidad de cadera.'},
+ 'Romanian Deadlift (Dumbbell)':{ev:'afonso21', txt:'Recorrido largo con el femoral estirado: crecimiento y movilidad de cadera.'},
+ 'Hip Abduction (Machine)':{ev:'nascimento18', txt:'Cadera + rodilla reduce más el dolor de rodilla que trabajar solo la rodilla. No la saltes.'},
+ 'Band Lateral Walk':{ev:'nascimento18', txt:'Glúteo medio: rodilla más estable. Útil en casa o como calentamiento.'},
+ 'Hip Thrust (Barbell)':{ev:'nascimento18', txt:'Glúteo fuerte sin cargar la rodilla.'},
+ 'Hip Thrust (Machine)':{ev:'nascimento18', txt:'Glúteo fuerte sin cargar la rodilla.'},
+ 'Hip Adduction (Machine)':{ev:'nascimento18', txt:'Parte del trabajo de cadera que estabiliza la rodilla.'},
+ 'Incline Bench Press (Dumbbell)':{ev:'refalo23', txt:'Deja 1-2 reps en reserva: el fallo no da más músculo y te quita repeticiones en las series siguientes.'}
+};

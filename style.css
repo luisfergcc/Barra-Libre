@@ -272,3 +272,25 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 #rest.end .rbar{background:var(--good-soft)}
 #rest.end .rrow b{font-size:18px}
 .app{padding-bottom:calc(var(--tabbar) + env(safe-area-inset-bottom,0px) + 100px)}
+
+/* ===== Ciencia: consejos y estudios ===== */
+.ctx{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--muted)}
+.ctx b{color:var(--fg);font-variant-numeric:tabular-nums}
+.ev-line{all:unset;cursor:pointer;font-size:13px;line-height:1.4;color:var(--fg);background:var(--accent-wash);border-radius:10px;padding:8px 10px}
+.ev-line:focus-visible{outline:2px solid var(--accent)}
+.ev-chip{border:1px solid var(--line);background:var(--raised);color:var(--muted);border-radius:999px;font:600 12px var(--f-body);padding:4px 10px}
+.tipc{border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;background:var(--raised)}
+.tipc-h{display:flex;gap:8px;align-items:flex-start;font-size:15px}
+.tipc-b{font-size:14px;color:var(--muted);line-height:1.5}
+.tipc-b b{color:var(--fg)}
+.dotk{flex:none;width:10px;height:10px;border-radius:50%;margin-top:5px;background:var(--accent)}
+.tipc.bad .dotk{background:var(--bad)} .tipc.warn .dotk{background:var(--warn)} .tipc.good .dotk{background:var(--good)}
+.rec-ex{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.wk{border-radius:12px;padding:12px;background:var(--bg);border:1px solid var(--line)}
+.wk-row{display:grid;grid-template-columns:1fr auto 84px;gap:10px;align-items:center;padding:5px 0;font-size:14px;border-top:1px solid var(--line-soft)}
+.wk-row:first-of-type{border-top:0}
+.wk-row .pill{text-align:center}
+.ev-row{display:flex;justify-content:space-between;align-items:center;gap:10px;text-align:left;border:0;border-top:1px solid var(--line-soft);background:none;padding:10px 0;color:var(--fg);font:500 14px var(--f-body)}
+.ev-row small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.ev-box{background:var(--raised);border-radius:12px;padding:12px}
+.ev-box p{margin:6px 0 0;font-size:15px;line-height:1.5}
