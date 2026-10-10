@@ -1,6 +1,6 @@
 // Cambia VERSION en cada actualización para que el iPhone descargue la nueva versión
-const VERSION = 'barralibre-1.3.1';
-const FILES = ['./', 'index.html', 'style.css', 'data.js', 'app.js', 'manifest.webmanifest', 'icon-180.png', 'icon-512.png'];
+const VERSION = 'barralibre-1.4.0';
+const FILES = ['./', 'index.html', 'style.css', 'data.js', 'guia.js', 'app.js', 'manifest.webmanifest', 'icon-180.png', 'icon-512.png'];
 
 // Al instalar una versión nueva, descarga todo saltándose la caché del navegador
 self.addEventListener('install', e => {

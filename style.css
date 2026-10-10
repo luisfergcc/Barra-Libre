@@ -337,3 +337,40 @@ table.hist tr[data-sess]{cursor:pointer}
 .plates-viz .sleeve{width:34px;height:12px;border-radius:3px;background:var(--muted);flex:none}
 .plate{flex:none;width:22px;border-radius:4px;display:flex;align-items:center;justify-content:center;font:700 9px var(--f-body);color:#0e1215;writing-mode:vertical-rl}
 label.lbl{display:flex;flex-direction:column;gap:6px;font-size:14px;color:var(--muted)}
+
+/* Guía visual: muñeco animado */
+.gfig{width:100%;max-width:340px;display:block;margin:0 auto;background:var(--raised);border-radius:14px}
+.gpair{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.gfig line,.gfig path{stroke-linecap:round;stroke-linejoin:round}
+.gfig .g-body{stroke:var(--fg);stroke-width:4.2}
+.gfig .g-torso{stroke-width:6}
+.gfig .g-foot{stroke-width:3.4}
+.gfig .g-far{stroke:var(--muted);stroke-width:3.6;opacity:.55}
+.gfig .g-head{fill:var(--fg)}
+.gfig .g-hl{stroke:var(--accent);stroke-width:11;opacity:.38;fill:var(--accent)}
+.gfig .g-floor{stroke:var(--line);stroke-width:2}
+.gfig .g-eq{fill:var(--muted);opacity:.32;stroke:none}
+.gfig .g-eqline{stroke:var(--muted);opacity:.45;stroke-width:4}
+.gfig .g-load{fill:var(--warn);stroke:var(--surface);stroke-width:.8}
+.gfig .g-hub{fill:var(--surface)}
+.gfig .g-dbbar,.gfig .g-loadbar{stroke:var(--warn);stroke-width:2.4}
+.gfig .g-cable{stroke:var(--muted);stroke-width:1.2;stroke-dasharray:none;opacity:.8}
+.gfig .g-band{stroke:var(--good);stroke-width:2;stroke-dasharray:3 2}
+.gfig .g-pad{fill:var(--muted);opacity:.8}
+.pk-row{display:grid;grid-template-columns:minmax(0,1fr) 48px;gap:6px;align-items:stretch}
+.pk-info{border:1px solid var(--line);background:var(--raised);color:var(--accent);border-radius:12px;font-size:16px}
+.ex-name{background:none;border:0;padding:0;color:inherit;font:inherit;text-align:left;text-transform:inherit;letter-spacing:inherit;cursor:pointer}
+.ex-how{font-size:.6em;color:var(--accent);vertical-align:middle}
+.g-h{margin:14px 0 6px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.g-steps,.g-err{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:15px;line-height:1.4}
+.g-err li::marker{color:var(--bad)}
+.g-cue{margin:0;padding:10px 12px;border-radius:10px;background:var(--accent-wash);font-size:14px;line-height:1.4}
+/* Análisis de la rutina */
+details.ra{border:1px solid var(--line);border-radius:12px;background:var(--raised)}
+details.ra summary{list-style:none;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;gap:8px;font-weight:600;font-size:14px;cursor:pointer}
+details.ra summary::-webkit-details-marker{display:none}
+details.ra .ra-b{padding:0 12px 12px;display:flex;flex-direction:column;gap:8px}
+.ra-n{font-size:12px;font-weight:700;border-radius:999px;padding:2px 8px;background:var(--warn-soft);color:var(--warn)}
+.ra-n.ok{background:var(--good-soft);color:var(--good)}
+.pk-head .row{flex-wrap:nowrap}
+.pk-head .sheet-t{text-align:left;flex:1;min-width:0}

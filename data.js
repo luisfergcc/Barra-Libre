@@ -1,5 +1,5 @@
 /* =====================================================================
-   BARRA LIBRE · datos fijos (plan v1.2)
+   BARRA LIBRE · datos fijos (plan v1.3)
    Si cambia el plan, se actualiza aquí: rutinas, calentamientos y ejercicios.
    ===================================================================== */
 
@@ -14,7 +14,8 @@ const EQUIP = {
   pull:'Barra de dominadas', dip:'Paralelas', lp:'Prensa', lext:'Extensión de cuádriceps', lcurl:'Curl femoral',
   abd:'Abductores', add:'Aductores', calf:'Gemelo en máquina', pec:'Peck deck', cpress:'Press de pecho en máquina',
   latm:'Jalón al pecho', rowm:'Remo en máquina', tbar:'Remo en T', latrm:'Laterales en máquina', rearm:'Pájaros en máquina',
-  crunchm:'Crunch en máquina', hyper:'Banco de hiperextensiones', dipm:'Fondos en máquina', hipm:'Hip thrust en máquina', band:'Bandas elásticas'
+  crunchm:'Crunch en máquina', hyper:'Banco de hiperextensiones', dipm:'Fondos en máquina', hipm:'Hip thrust en máquina', band:'Bandas elásticas',
+  kb:'Kettlebell', box:'Cajón o step', hack:'Hack squat o péndulo', trap:'Barra hexagonal', assist:'Dominadas asistidas (máquina)', shm:'Press de hombro en máquina', prec:'Curl en máquina o banco Scott', wheel:'Rueda abdominal'
 };
 const GYM_PRESETS = {
   full: Object.keys(EQUIP),
@@ -107,14 +108,104 @@ const EX = {
  'Spanish Squat':['Sentadilla española con banda (isométrica)','cu',30,45,1,60,'iso',['band'],'t'],
  'Plank':['Plancha','co',30,60,0,60,'core',[],'t'],
  'Side Plank':['Plancha lateral','co',20,45,0,45,'core',[],'t'],
- 'Chin Up':['Dominadas supinas','es bi',5,10,0,150,'pull_v',['pull']]
+ 'Chin Up':['Dominadas supinas','es bi',5,10,0,150,'pull_v',['pull']],
+/* ---------- Biblioteca ampliada (13/10/2026): aunque no estén en tu gimnasio ---------- */
+ 'Incline Bench Press (Barbell)':['Press inclinado con barra','pe ho',6,10,0,150,'press_inc',['bb','bench']],
+ 'Decline Bench Press (Barbell)':['Press declinado con barra','pe tr',6,10,0,150,'press_h',['bb','bench']],
+ 'Bench Press (Smith Machine)':['Press banca en Smith','pe tr',8,12,0,150,'press_h',['smith','bench']],
+ 'Chest Fly (Dumbbell)':['Aperturas planas con mancuernas','pe',10,15,0,90,'fly',['db','bench']],
+ 'Low Cable Fly Crossovers':['Cruces de abajo arriba','pe ho',10,15,0,90,'fly',['cable']],
+ 'Incline Push Up':['Flexiones con manos en banco','pe tr',10,20,0,75,'press_h',['bench']],
+ 'Knee Push Up':['Flexiones de rodillas','pe tr',8,20,0,75,'press_h',[]],
+ 'Decline Push Up':['Flexiones con pies elevados','pe ho',8,15,0,90,'press_h',['bench']],
+ 'Diamond Push Up':['Flexiones diamante','tr pe',6,15,0,90,'tri',[]],
+ 'Pullover (Dumbbell)':['Pullover con mancuerna','es pe',10,15,0,90,'pull_v',['db','bench']],
+ 'Landmine Press':['Press landmine','ho pe',8,12,0,90,'press_v',['bb']],
+ 'Overhead Press (Barbell)':['Press militar con barra','ho tr',6,10,0,150,'press_v',['bb']],
+ 'Shoulder Press (Machine)':['Press de hombro en máquina','ho tr',8,12,0,120,'press_v',['shm']],
+ 'Arnold Press (Dumbbell)':['Press Arnold','ho tr',8,12,0,120,'press_v',['db','bench']],
+ 'Front Raise (Dumbbell)':['Elevaciones frontales','ho',10,15,0,60,'front_raise',['db']],
+ 'Front Raise (Cable)':['Elevación frontal en polea','ho',10,15,0,60,'front_raise',['cable']],
+ 'Upright Row (Cable)':['Remo al mentón en polea','ho',10,15,0,75,'upright',['cable']],
+ 'Shrug (Dumbbell)':['Encogimientos con mancuernas','es',10,15,0,60,'shrug',['db']],
+ 'Shrug (Barbell)':['Encogimientos con barra','es',8,12,0,75,'shrug',['bb']],
+ 'External Rotation (Cable)':['Rotación externa en polea','ho',12,20,0,45,'rot',['cable']],
+ 'Bent Over Row (Barbell)':['Remo con barra','es bi',8,12,0,120,'row',['bb']],
+ 'Pendlay Row (Barbell)':['Remo Pendlay','es bi',6,10,0,120,'row',['bb']],
+ 'Lat Pulldown - Close Grip (Cable)':['Jalón agarre estrecho','es bi',8,12,0,120,'pull_v',['latm']],
+ 'Reverse Grip Lat Pulldown (Cable)':['Jalón supino','es bi',8,12,0,120,'pull_v',['latm']],
+ 'Assisted Pull Up':['Dominadas asistidas','es bi',6,12,0,120,'pull_v',['assist']],
+ 'Inverted Row':['Remo invertido','es bi',8,15,0,90,'row',['smith']],
+ 'Seated Cable Row - Bar Wide Grip':['Remo en polea agarre ancho','es ho',8,12,0,120,'row',['cable']],
+ 'Meadows Row':['Remo Meadows (landmine a una mano)','es bi',8,12,0,90,'row',['bb']],
+ 'Deadlift (Barbell)':['Peso muerto convencional','fe gl es',3,8,1,180,'hinge',['bb']],
+ 'Trap Bar Deadlift':['Peso muerto con barra hexagonal','cu fe gl',5,8,1,180,'hinge',['trap']],
+ 'Good Morning (Barbell)':['Buenos días con barra','fe gl',8,12,0,120,'hinge',['bb']],
+ 'Single Leg Romanian Deadlift (Dumbbell)':['Peso muerto rumano a una pierna','fe gl',8,12,1,90,'hinge',['db']],
+ 'Kettlebell Swing':['Swing con kettlebell','gl fe',12,20,0,90,'hinge',['kb']],
+ 'Cable Pull Through':['Pull through en polea','gl fe',10,15,0,75,'hinge',['cable']],
+ 'Superman':['Superman','es gl',10,15,0,45,'core',[]],
+ 'EZ Bar Curl':['Curl con barra Z','bi',8,12,0,75,'curl',['bb']],
+ 'Hammer Curl (Dumbbell)':['Curl martillo','bi',10,12,0,75,'curl',['db']],
+ 'Concentration Curl':['Curl concentrado','bi',10,15,0,60,'curl',['db','bench']],
+ 'Spider Curl (Dumbbell)':['Curl araña','bi',10,15,0,60,'curl',['db','bench']],
+ 'Preacher Curl (Machine)':['Curl predicador en máquina','bi',10,12,0,75,'curl',['prec']],
+ 'Reverse Curl (Barbell)':['Curl inverso con barra','bi',10,15,0,60,'curl',['bb']],
+ 'Triceps Kickback (Dumbbell)':['Patada de tríceps','tr',12,15,0,60,'tri',['db','bench']],
+ 'Close Grip Bench Press':['Press banca agarre estrecho','tr pe',6,10,0,120,'tri',['bb','bench']],
+ 'Squat (Barbell)':['Sentadilla con barra','cu gl',5,10,1,180,'squat',['bb']],
+ 'Front Squat (Barbell)':['Sentadilla frontal','cu gl',5,10,1,180,'squat',['bb']],
+ 'Squat (Smith Machine)':['Sentadilla en Smith','cu gl',8,12,1,150,'squat',['smith']],
+ 'Hack Squat (Machine)':['Hack squat','cu gl',8,12,1,150,'squat',['hack']],
+ 'Pendulum Squat (Machine)':['Sentadilla péndulo','cu gl',8,12,1,150,'squat',['hack']],
+ 'Goblet Squat':['Sentadilla goblet','cu gl',8,15,1,90,'squat',['db']],
+ 'Bodyweight Squat':['Sentadilla sin peso','cu gl',10,20,1,60,'squat',[]],
+ 'Sit to Stand':['Levantarse de la silla','cu gl',8,15,1,60,'squat',[]],
+ 'Walking Lunge (Dumbbell)':['Zancadas caminando','cu gl',8,12,1,90,'squat',['db']],
+ 'Split Squat (Dumbbell)':['Sentadilla dividida','cu gl',8,12,1,90,'squat',['db']],
+ 'Lateral Lunge':['Zancada lateral','ad cu gl',8,12,1,75,'squat',[]],
+ 'Lateral Step Down':['Bajada lateral desde escalón','cu',8,15,1,60,'knee_ext',['box']],
+ 'Box Jump':['Salto al cajón','cu ge',3,6,1,120,'jump',['box']],
+ 'Squat Jump':['Sentadilla con salto','cu ge',5,8,1,90,'jump',[]],
+ 'Nordic Hamstring Curl':['Curl nórdico','fe',3,8,0,120,'leg_curl',[]],
+ 'Leg Press Calf Raise':['Gemelo en prensa','ge',12,20,0,60,'calf',['lp']],
+ 'Calf Raise (Bodyweight)':['Gemelo de pie sin peso','ge',15,25,0,45,'calf',[]],
+ 'Single Leg Glute Bridge':['Puente de glúteo a una pierna','gl fe',10,15,0,60,'abd',[]],
+ 'Clamshell':['Almeja con banda','gl',15,20,0,45,'abd',['band']],
+ 'Side Lying Leg Raise':['Elevación de pierna tumbado de lado','gl',12,20,0,45,'abd',[]],
+ 'Hip Abduction (Cable)':['Abducción de pie en polea','gl',12,15,0,60,'abd',['cable']],
+ 'Crunch':['Crunch en el suelo','co',15,25,0,45,'core',[]],
+ 'Hanging Leg Raise':['Elevación de piernas colgado','co',8,15,0,75,'core',['pull']],
+ 'Lying Leg Raise':['Elevación de piernas tumbado','co',10,20,0,45,'core',[]],
+ 'Russian Twist':['Giro ruso','co',10,20,0,45,'core',[]],
+ 'Ab Wheel':['Rueda abdominal','co',6,12,0,75,'core',['wheel']],
+ 'Pallof Press':['Press Pallof','co',10,12,0,45,'core',['cable']],
+ 'Bird Dog':['Bird dog','co gl',8,12,0,45,'core',[]],
+ 'Mountain Climber':['Escaladores','co cu',20,40,0,45,'core',[]],
+ 'Burpee':['Burpee','cu pe',8,15,1,90,'jump',[]],
+ 'Jumping Jack':['Saltos de tijera','ge ho',20,40,0,45,'jump',[]],
+ 'Hollow Hold':['Hollow hold (barca)','co',20,40,0,45,'core',[],'t'],
+ 'Copenhagen Plank':['Plancha Copenhague','ad co',15,30,0,60,'core',['bench'],'t'],
+ "Farmer's Walk":['Paseo del granjero','co es',30,60,0,90,'carry',['db'],'t'],
+ 'Dead Hang':['Colgarse de la barra','es',20,45,0,60,'iso',['pull'],'t'],
+/* Movilidad y estiramientos (por tiempo, cada lado) */
+ 'Hip Flexor Stretch':['Estiramiento de flexor de cadera','cu',30,60,0,15,'mob',[],'t'],
+ 'Couch Stretch':['Estiramiento del sofá (cuádriceps)','cu',30,60,1,15,'mob',['bench'],'t'],
+ 'Hamstring Stretch':['Estiramiento de femoral sentado','fe',30,60,0,15,'mob',[],'t'],
+ '90/90 Hip Stretch':['90/90 de cadera','gl',30,60,0,15,'mob',[],'t'],
+ 'Cat Cow':['Gato-camello','es co',8,12,0,15,'mob',[]],
+ "Child's Pose":['Postura del niño','es',30,60,0,15,'mob',[],'t'],
+ 'Thoracic Rotation':['Rotación torácica en cuadrupedia','es',8,12,0,15,'mob',[]],
+ 'Calf Stretch':['Estiramiento de gemelo en pared','ge',30,60,0,15,'mob',[],'t'],
+ 'Doorway Pec Stretch':['Estiramiento de pecho en el marco','pe',30,60,0,15,'mob',[],'t'],
+ 'Deep Squat Hold':['Sentadilla profunda mantenida','cu gl',30,60,1,15,'mob',[],'t']
 };
 /* Ejercicios en los que tu peso corporal cuenta como carga (Strong hace lo mismo).
    1 = todo tu peso; 0,65 = flexiones (aprox.); -1 = asistida (tu peso menos la ayuda). Los kg que apuntas son lastre. */
-const BW_LOAD = {'Pull Up':1, 'Chin Up':1, 'Chest Dip':1, 'Push Up':0.65};
+const BW_LOAD = {'Pull Up':1, 'Chin Up':1, 'Chest Dip':1, 'Push Up':0.65, 'Assisted Pull Up':-1, 'Inverted Row':0.6, 'Knee Push Up':0.5, 'Incline Push Up':0.45, 'Decline Push Up':0.7, 'Diamond Push Up':0.65};
 /* Discos por defecto para la calculadora (kg, por lado) */
 const PLATES = [25, 20, 15, 10, 5, 2.5, 1.25];
-const SKIP = new Set(['Walking','Stretching']);
+const SKIP = new Set(['Walking','Stretching','Treadmill Incline Walk']);
 
 /* Rutinas del plan (nombres de Hevy, en orden) */
 const ROUTINES = {
@@ -135,7 +226,7 @@ const WARM = {
  full:['Bici o caminata suave · 3 min','90/90 de cadera · 8 cambios','Flexor de cadera en zancada · 30 s por lado','Rana en cuadrupedia · 10 balanceos','Puente de glúteo · 12 reps','Pasos laterales con mini banda · 10 por lado','Sentadilla isométrica en pared · 2 × 30-45 s','Sentadilla goblet con pausa · 5 reps','Extensión de cuádriceps ligera · 2 × 15']
 };
 const KNEE_BLOCK = ['Sentadilla isométrica en pared · 2 × 45 s','Extensión terminal de rodilla · 2 × 15 por pierna','Bajada lenta desde escalón · 2 × 8 por pierna'];
-const PLAN_VERSION = 'v1.2';
+const PLAN_VERSION = 'v1.3';
 /* Series fijadas por el plan (si no aparece, 3) */
 const planSets = (n, def = 3) => { for (const k of ORDER) { const st = ROUTINES[k].sets; if (st && st[n]) return st[n]; } return def; };
 
@@ -199,6 +290,9 @@ const EVIDENCE = [
   hallazgo:'En 9 semanas de entrenamiento, parar una semana entera a mitad no cambió el crecimiento de la pierna, pero la fuerza (sentadilla y extensión de rodilla) subió algo menos que en quienes siguieron entrenando.', regla:'Si descargas, no pares: baja las series y mantén el peso.'},
  {id:'bell23', tema:'fuerza', cita:'Bell y col.', rev:'Sports Medicine – Open', year:2023, tipo:'Consenso Delphi de entrenadores',
   hallazgo:'Entrenadores de fuerza y físico definen la descarga como un periodo de menos estrés de entrenamiento para reducir la fatiga física y mental y preparar el siguiente bloque.', regla:'Úsala cuando se acumulan fatiga o estancamientos, no como un fin en sí misma.'}
+,
+ {id:'nunes21', tema:'fuerza', cita:'Nunes y col.', rev:'European Journal of Sport Science', year:2021, tipo:'Revisión sistemática y metaanálisis',
+  hallazgo:'Los ejercicios que se hacen al principio de la sesión son los que más fuerza ganan; el orden no cambió la hipertrofia.', regla:'Pon primero el ejercicio en el que quieras progresar en fuerza; para crecer, el orden da igual.'}
 ];
 const EV = Object.fromEntries(EVIDENCE.map(e => [e.id, e]));
 const TEMAS = {hip:'Hipertrofia', fuerza:'Fuerza', rodilla:'Rodilla y cadera', movilidad:'Movilidad', correr:'Correr'};
