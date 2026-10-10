@@ -409,3 +409,7 @@ details.ra .ra-b{padding:0 12px 12px;display:flex;flex-direction:column;gap:8px}
 .sugg-last b{color:var(--fg);font-variant-numeric:tabular-nums}
 .g-steps.lad li.on{color:var(--accent)}
 .g-steps.lad .ex-name{font-size:15px}
+.hist-m{font:600 12px var(--f-body);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:10px 2px 2px}
+.hist-src{font:700 11px var(--f-body);padding:3px 8px;border-radius:999px;flex:none;align-self:center}
+.hist-src.hevy{background:var(--warn-soft);color:var(--warn)}
+.hist-src.app{background:var(--accent-soft);color:var(--accent)}

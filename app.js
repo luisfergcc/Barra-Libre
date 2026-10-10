@@ -104,10 +104,12 @@ function rebuild(){
     id:s.id, date:parseIso(s.date), title:s.title, routine:(s.p || 'me') === P.id && ROUTINES[s.routine] ? s.routine : null, src:'app',
     ex:(s.ex||[]).map(e => ({n:e.n, sets:(e.sets||[]).filter(x => x.done && toNum(x.reps)).map(x => ({kg:toNum(x.kg), reps:+toNum(x.reps), type:x.t||'n', knee:x.knee === '' || x.knee == null ? null : +x.knee, rir:x.rir === '' || x.rir == null ? null : +x.rir}))})).filter(e => e.sets.length)
   }));
-  const appDays = new Set(app.map(s => dayKey(s.date)));
+  /* Si el mismo entreno está en la app y en Hevy, se queda el de la app. Antes se ocultaba cualquier sesión de Hevy
+     de un día con sesión en la app, aunque fuera otro entreno distinto (p. ej. dos sesiones el mismo día). */
+  const appByDay = {}; for (const s of app) { const k = dayKey(s.date); appByDay[k] ||= new Set(); for (const e of s.ex) appByDay[k].add(e.n); }
   const hevy = [], hdel = new Set(kv('hevyDeleted', []));
   if (P.person === 'me') for (const k in S.hevy) for (const s of S.hevy[k]) {
-    const d = parseIso(s.date); if (appDays.has(dayKey(d)) || hdel.has(s.id)) continue;
+    const d = parseIso(s.date), same = appByDay[dayKey(d)]; if (hdel.has(s.id) || (same && s.ex.some(e => same.has(e.n)))) continue;
     hevy.push({id:s.id, date:d, title:s.title, routine:P.builtin ? routineOf(s.title) : null, src:'hevy',
       ex:s.ex.map(e => ({n:e.n, sets:e.s.map(x => ({kg:x[0], reps:x[1], type:x[2]||'n', knee:null, rir:x[3] ?? null}))}))});
   }
@@ -971,13 +973,24 @@ async function deleteEdited(){
   else await setKv('hevyDeleted', kv('hevyDeleted', []).concat(ED.id));
   ED = null; rebuild(); REC_CACHE = null; closeSheet(); render(); toast('Sesión borrada');
 }
+/* Historial completo: sesiones de la app y de Hevy, por meses, con filtro y "Ver más" */
 function renderSessions(){
-  const n = S.showAllSess ? 60 : 8, list = S.all.slice(0, n);
-  return `<section class="card pad stack" style="gap:8px">
-    <header class="row" style="justify-content:space-between"><h2>Sesiones</h2><span class="faint" style="font-size:12px">Toca una para corregirla</span></header>
-    <div class="sheet-list">${list.map(s => { const sets = s.ex.reduce((a,e) => a + e.sets.length, 0);
-      return `<button class="sheet-item sess-row" data-sess="${esc(s.id)}"><span><b>${esc(s.routine && ROUTINES[s.routine] ? ROUTINES[s.routine].code + ' · ' + ROUTINES[s.routine].title : s.title)}</b><small>${fmtDate(s.date,{weekday:'short', day:'numeric', month:'short'})} · ${pl(sets, 'serie')}${s.src === 'hevy' ? ' · Hevy' : ''}</small></span><span class="faint">Editar ›</span></button>`; }).join('')}</div>
-    ${S.all.length > 8 ? `<button class="btn ghost wide" data-allsess>${S.showAllSess ? 'Ver menos' : 'Ver más'}</button>` : ''}
+  const f = S.histF || 'all', all = S.all, nApp = all.filter(x => x.src === 'app').length, nHevy = all.length - nApp;
+  const list = all.filter(x => f === 'all' || x.src === f), n = S.histN || 20, shown = list.slice(0, n);
+  const ton = x => x.ex.reduce((a, e) => a + (meta(e.n).mins || meta(e.n).time ? 0 : e.sets.reduce((b, y) => b + (y.kg || 0) * y.reps, 0)), 0);
+  let lastM = '', rows = '';
+  for (const x of shown) {
+    const m = x.date.toLocaleDateString('es-ES', {month:'long', year:'numeric'});
+    if (m !== lastM) { const cnt = list.filter(y => y.date.getMonth() === x.date.getMonth() && y.date.getFullYear() === x.date.getFullYear()).length;
+      rows += `<div class="hist-m">${m[0].toUpperCase() + m.slice(1)} · ${pl(cnt, 'sesión', 'sesiones')}</div>`; lastM = m; }
+    const sets = x.ex.reduce((a, e) => a + e.sets.length, 0), t = ton(x), name = x.routine && ROUTINES[x.routine] ? ROUTINES[x.routine].code + ' · ' + ROUTINES[x.routine].title : x.title || 'Entreno';
+    rows += `<button class="sheet-item sess-row" data-sess="${esc(x.id)}"><span><b>${esc(name)}</b><small>${fmtDate(x.date, {weekday:'short', day:'numeric', month:'short'})} · ${pl(x.ex.length, 'ejercicio')} · ${pl(sets, 'serie')}${t ? ` · ${Math.round(t).toLocaleString('es-ES')} kg` : ''}</small></span><span class="hist-src ${x.src}">${x.src === 'hevy' ? 'Hevy' : 'App'}</span></button>`;
+  }
+  return `<section class="card pad stack" style="gap:8px" id="histCard">
+    <header class="row" style="justify-content:space-between"><h2>Historial</h2><span class="faint" style="font-size:12px">${pl(all.length, 'sesión', 'sesiones')} · toca una para verla o corregirla</span></header>
+    <div class="chip-row">${[['all', `Todas (${all.length})`], ['app', `App (${nApp})`], ['hevy', `Hevy (${nHevy})`]].map(([k, l]) => `<button class="chip small ${f === k ? 'on' : ''}" data-histf="${k}">${l}</button>`).join('')}</div>
+    ${list.length ? `<div class="sheet-list">${rows}</div>` : `<p class="muted" style="margin:0">${f === 'hevy' ? 'Aún no has importado Hevy: Más → Historial de Hevy.' : 'Aún no hay sesiones.'}</p>`}
+    ${list.length > n ? `<button class="btn ghost wide" data-histmore>Ver más (${list.length - n} restantes)</button>` : ''}
   </section>`;
 }
 
@@ -1276,6 +1289,7 @@ function renderProgress(){
     </section>
     ${renderCardio()}
     ${renderCalendar()}
+    ${renderSessions()}
     ${renderLibrary()}
   </div>`;
 }
@@ -1800,6 +1814,8 @@ document.addEventListener('click', async e => {
   /* Corregir sesiones terminadas */
   const sess = t.closest('[data-sess]'); if (sess && !S.live) return openEditor(sess.dataset.sess);
   if (t.closest('[data-allsess]')) { S.showAllSess = !S.showAllSess; render(); return; }
+  const hf = t.closest('[data-histf]'); if (hf) { S.histF = hf.dataset.histf; S.histN = 20; render(); $('#histCard').scrollIntoView({block:'start'}); return; }
+  if (t.closest('[data-histmore]')) { const y = window.scrollY; S.histN = (S.histN || 20) + 30; render(); window.scrollTo({top:y}); return; }
   if (ED) {
     const xd = t.closest('[data-edsetdel]'); if (xd) { const [i,j] = xd.dataset.edsetdel.split('-').map(Number); ED.ex[i].sets.splice(j, 1); if (!ED.ex[i].sets.length) ED.ex.splice(i, 1); drawEditor(); return; }
     const xe = t.closest('[data-edexdel]'); if (xe) { ED.ex.splice(+xe.dataset.edexdel, 1); drawEditor(); return; }
