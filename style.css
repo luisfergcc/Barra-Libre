@@ -413,3 +413,11 @@ details.ra .ra-b{padding:0 12px 12px;display:flex;flex-direction:column;gap:8px}
 .hist-src{font:700 11px var(--f-body);padding:3px 8px;border-radius:999px;flex:none;align-self:center}
 .hist-src.hevy{background:var(--warn-soft);color:var(--warn)}
 .hist-src.app{background:var(--accent-soft);color:var(--accent)}
+/* volver atrás desde el borde y entreno en curso */
+.edge-back{position:fixed;left:0;top:0;width:44px;height:44px;border-radius:50%;background:var(--raised);border:1px solid var(--line);color:var(--muted);display:grid;place-items:center;font-size:28px;line-height:1;z-index:80;pointer-events:none;box-shadow:0 2px 10px rgba(0,0,0,.2);transition:background .12s,color .12s}
+.edge-back.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.live-bar{display:flex;align-items:center;gap:10px;width:100%;margin:0 0 12px;padding:10px 14px;border-radius:12px;border:1px solid var(--accent);background:var(--accent-wash);color:var(--fg);font-size:14px;text-align:left}
+.live-bar span:nth-child(2){flex:1}
+.live-bar .dot{width:9px;height:9px;border-radius:50%;background:var(--bad);animation:livepulse 1.4s infinite}
+@keyframes livepulse{50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){.live-bar .dot{animation:none}}

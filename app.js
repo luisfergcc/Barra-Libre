@@ -147,7 +147,7 @@ function setVal(name, kg, reps, date){
   if (f) { const bw = bwAt(date); if (bw) { const load = f < 0 ? bw - (kg||0) : bw*f + (kg||0); return {v:e1rm(load, reps), kg:Math.round(load*10)/10, bwl:true}; } }
   return {v: kg ? e1rm(kg, reps) : reps, kg};
 }
-function history(name){
+function exHistory(name){
   if (S.histCache[name]) return S.histCache[name];
   const out = [];
   for (const s of S.all) for (const e of s.ex) if (e.n === name) {
@@ -185,7 +185,7 @@ function stepOf(name, hist){
 const roundTo = (v, step) => Math.round(v/step)*step;
 
 function suggest(name){
-  const m = meta(name), hist = history(name);
+  const m = meta(name), hist = exHistory(name);
   if (m.mins) return suggestMins(name, m, hist);
   const lad = typeof LADDER_OF !== 'undefined' ? LADDER_OF[name] : null;
   if (!hist.length && lad && needsKg(name)) return {tone:'new', tag:'NUEVO', kg:LADDER_START_KG, reps:`${m.lo}-${m.hi}`, text:`Empieza con <b>${LADDER_START_KG} kg</b> y ${m.lo}-${m.hi} reps con buena técnica. Sube 1-2 kg cuando hagas ${m.hi} en todas las series.`};
@@ -316,13 +316,13 @@ function sessionVolume(ex){ const v = {}; for (const e of ex) { if (NOVOL.has(me
 /* Alternativas: mismo patrón, material disponible, primero las que cuidan la rodilla y las que tienen respaldo en estudios */
 function altsFor(name, k = 3){
   const m = meta(name), eq = currentGym().eq;
-  const score = c => { const cm = meta(c); return (EX_TIPS[c] ? 4 : 0) + (cm.knee ? 0 : 2) + Math.min(3, history(c).length / 5) + (cm.mus[0] === m.mus[0] ? 3 : 0); };
+  const score = c => { const cm = meta(c); return (EX_TIPS[c] ? 4 : 0) + (cm.knee ? 0 : 2) + Math.min(3, exHistory(c).length / 5) + (cm.mus[0] === m.mus[0] ? 3 : 0); };
   const ex = excluded();
   return Object.keys(EX).filter(c => c !== name && !ex.has(c) && meta(c).pat === m.pat && hasEq(c, eq)).sort((a,b) => score(b) - score(a)).slice(0, k);
 }
 function recommendFor(mu, k = 3, exclude = []){
   const eq = currentGym().eq;
-  const score = c => { const cm = meta(c); return (EX_TIPS[c] ? 4 : 0) + (cm.knee ? -1 : 1) + Math.min(4, history(c).length / 4); };
+  const score = c => { const cm = meta(c); return (EX_TIPS[c] ? 4 : 0) + (cm.knee ? -1 : 1) + Math.min(4, exHistory(c).length / 4); };
   const ex = excluded();
   return Object.keys(EX).filter(c => meta(c).mus[0] === mu && hasEq(c, eq) && !exclude.includes(c) && !ex.has(c)).sort((a,b) => score(b) - score(a)).slice(0, k);
 }
@@ -386,7 +386,7 @@ function adviceList(){
     : {prio:4, kind:'good', title:`Descansos bien medidos: ~${Math.round(mr)} s en los básicos`, ev:['singer24'], body:'Estás en el rango que mejor funciona.'});
   // 6. Rodilla
   const kneeBad = [];
-  for (const n of exIn4) { const k = history(n).slice(0,3).flatMap(h => h.sets.map(x => x.knee)).filter(x => x != null); if (k.length && k.reduce((a,b)=>a+b,0)/k.length >= 3) kneeBad.push(n); }
+  for (const n of exIn4) { const k = exHistory(n).slice(0,3).flatMap(h => h.sets.map(x => x.knee)).filter(x => x != null); if (k.length && k.reduce((a,b)=>a+b,0)/k.length >= 3) kneeBad.push(n); }
   for (const n of kneeBad) { const alts = altsFor(n, 2).filter(a => !meta(a).knee || a === 'Leg Extension (Machine)');
     out.push({prio:0, kind:'bad', title:`Rodilla en ámbar con ${meta(n).es}`, ev:['powers14','willy19'],
       body:`Media de rodilla ≥ 3/10 en las últimas sesiones. Acorta el recorrido a la zona sin molestias${alts.length ? ` o cámbialo por ${alts.map(a => `<b>${esc(meta(a).es)}</b>`).join(' o ')}` : ''}. Si empeora al día siguiente o se hincha, que la vea un fisio.`}); }
@@ -484,7 +484,7 @@ function planFor(list, eq){ const used = new Set(list.filter(n => !EX[n] || hasE
 function substitute(n, eq, used = new Set()){
   if (!EX[n] || hasEq(n, eq)) return {n};
   const m = meta(n);
-  const usage = nn => history(nn).length;
+  const usage = nn => exHistory(nn).length;
   const score = c => { const cm = meta(c); return (cm.mus.filter(x => m.mus.includes(x)).length * 10) + (cm.knee === m.knee ? 3 : 0) + Math.min(5, usage(c)); };
   const ex = excluded();
   let cands = Object.keys(EX).filter(c => c !== n && !used.has(c) && !ex.has(c) && meta(c).pat === m.pat && hasEq(c, eq));
@@ -615,7 +615,7 @@ function renderLive(){
   </details>` : '';
   return `
   ${deloadActive() ? '<div class="banner" style="margin-bottom:12px"><span><b>Semana de descarga:</b> mitad de series, mismo peso, deja 3 en reserva.</span></div>' : ''}
-  <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:12px"><div class="eyebrow">${r ? r.code : 'Libre'} · ${esc(L.gym || '')}${curProf().builtin ? '' : ' · ' + esc(curProf().name)} · en curso · <span id="liveMins">${mins}</span> min</div><button class="menu" id="liveMenu" aria-label="Opciones de la sesión">⋮</button></div>
+  <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:12px"><div class="eyebrow">${r ? r.code : 'Libre'} · ${esc(L.gym || '')}${curProf().builtin ? '' : ' · ' + esc(curProf().name)} · en curso · <span id="liveMins">${mins}</span> min</div><span class="row" style="gap:6px"><button class="btn small" id="liveMenu" aria-label="Opciones de la sesión">Opciones</button><button class="btn small" id="liveExit">Salir</button></span></div>
   <div class="stack">
     ${warm}
     ${renderRA(L.ex.map(e => ({n:e.n, sets:e.sets.filter(x => x.t !== 'w').length})), L.routine, false)}
@@ -783,12 +783,25 @@ function renderCardio(){
     ${recent.length ? `<div class="sheet-list">${recent.map(c => `<div class="sheet-item sess-row"><span><b>${CARDIO[c.type] ? CARDIO[c.type].lab : c.type}</b><small>${fmtDate(c.date,{weekday:'short', day:'numeric', month:'short'})} · ${c.min} min${c.km ? ' · ' + fmt1(c.km) + ' km' : ''}${c.src === 'hevy' ? ' · Hevy' : c.src === 'sess' ? ' · en el entreno' : ''}</small></span>${c.src === 'app' ? `<button class="btn small ghost" data-cddel="${c.day}|${c.id}" aria-label="Borrar cardio">✕</button>` : ''}</div>`).join('')}</div>` : '<p class="muted" style="margin:0;font-size:14px">Aún no hay cardio apuntado.</p>'}
   </section>`;
 }
+function liveDone(){ let done = 0, open = 0; for (const e of S.live.ex) for (const x of e.sets) { if (x.done) { if (x.t !== 'w') done++; } else open++; } return {done, open}; }
 function sheetFinish(){
-  let done = 0, open = 0;
-  for (const e of S.live.ex) for (const x of e.sets) { if (x.done) { if (x.t !== 'w') done++; } else open++; }
+  const {done, open} = liveDone();
+  if (!done) return sheetExit();
   openSheet(`<h3 class="sheet-t">¿Terminar entreno?</h3>
-    <p class="muted" style="margin:0 0 12px;font-size:15px">${done} ${done === 1 ? 'serie hecha' : 'series hechas'}${open ? ` · ${open} sin marcar, que no se guardarán` : ''}.</p>
-    <div class="row"><button class="btn primary" id="finishYes">Sí, terminar</button><button class="btn ghost" data-sheetclose>Seguir entrenando</button></div>`);
+    <p class="muted" style="margin:0 0 12px;font-size:15px">${pl(done, 'serie hecha', 'series hechas')}${open ? ` · ${open} sin marcar, que no se guardarán` : ''}.</p>
+    <div class="stack" style="gap:8px"><button class="btn primary wide" id="finishYes">Sí, terminar y guardar</button><button class="btn ghost wide" data-sheetclose>Seguir entrenando</button>
+    <div id="discardZone"><button class="btn danger wide" id="discard">Descartar sin guardar</button></div></div>`);
+}
+/* Salir del entreno (botón ‹ Salir o gesto de volver): sin series hechas, se vuelve atrás sin guardar */
+function sheetExit(){
+  const {done} = liveDone();
+  openSheet(done ? `<h3 class="sheet-t">Salir del entreno</h3>
+    <p class="muted" style="margin:0 0 12px;font-size:15px">Llevas ${pl(done, 'serie hecha', 'series hechas')}.</p>
+    <div class="stack" style="gap:8px"><button class="btn primary wide" id="finishYes">Terminar y guardar</button><button class="btn ghost wide" data-sheetclose>Seguir entrenando</button>
+    <div id="discardZone"><button class="btn danger wide" id="discard">Descartar sin guardar</button></div></div>`
+  : `<h3 class="sheet-t">Salir del entreno</h3>
+    <p class="muted" style="margin:0 0 12px;font-size:15px">No has marcado ninguna serie, así que no hay nada que guardar.</p>
+    <div class="stack" style="gap:8px"><button class="btn primary wide" id="discardYes">Volver sin guardar</button><button class="btn ghost wide" data-sheetclose>Seguir entrenando</button></div>`);
 }
 
 /* ---------- RIR: repeticiones en reserva, un toque por serie ---------- */
@@ -1091,7 +1104,7 @@ function renderRA(items, key, open){
 function sheetGuide(n, back){
   const g = gguide(n), m = meta(n), tip = EX_TIPS[n];
   const eq = m.eq.length ? m.eq.map(k => EQUIP[k] || k).join(' · ') : 'Sin material';
-  const h = history(n), last = h[0];
+  const h = exHistory(n), last = h[0];
   openSheet(`<div class="pk-head"><h3 class="sheet-t" style="margin:0">${esc(m.es)}</h3><div class="row" style="gap:6px">${back ? '<button class="btn small" data-guideback>‹ Volver</button>' : ''}<button class="btn small ghost" data-sheetclose>Cerrar</button></div></div>
     <p class="faint" style="margin:2px 0 10px;font-size:12px">${esc(n)} · ${m.lo}-${m.hi} ${m.time ? 's' : 'reps'} · ${esc(eq)}</p>
     <div id="gAnim"></div>
@@ -1140,8 +1153,8 @@ function drawPickerList(){
     && (!PK.mus || meta(n).mus.includes(PK.mus))
     && (!q || meta(n).es.toLowerCase().includes(q) || n.toLowerCase().includes(q)));
   if (PK.lad) { names.length = 0; for (const L of Object.values(LADDERS)) for (const n of L.steps) if (!inSession.has(n) && !exc.has(n) && (!q || meta(n).es.toLowerCase().includes(q))) names.push(n); }
-  else names.sort((a,b) => history(b).length - history(a).length || meta(a).es.localeCompare(meta(b).es));
-  $('#pkList').innerHTML = names.length ? names.map(n => { const h = history(n).length, m = meta(n);
+  else names.sort((a,b) => exHistory(b).length - exHistory(a).length || meta(a).es.localeCompare(meta(b).es));
+  $('#pkList').innerHTML = names.length ? names.map(n => { const h = exHistory(n).length, m = meta(n);
     return `<div class="pk-row"><button class="sheet-item pk-item" data-pkpick="${esc(n)}"><span><b>${esc(m.es)}</b><small>${PK.lad && LADDER_OF[n] ? `${esc(LADDER_OF[n].lab)} · paso ${LADDER_OF[n].i + 1}/${LADDER_OF[n].n} · ` : ''}${m.mus.map(x => MUSCLES[x]).join(' · ')}${custom[n] ? ' · propio' : ''}${hasEq(n, eq) ? '' : ' · no está en tu gimnasio'}</small></span><span class="faint" style="font-size:12px;white-space:nowrap">${h ? h + ' sesiones' : 'nuevo'}</span></button><button class="pk-info" data-guide="${esc(n)}" aria-label="Cómo se hace ${esc(m.es)}">▶︎</button></div>`; }).join('')
     : `<p class="muted" style="text-align:center;margin:12px 0">No hay ejercicios con este filtro${PK.all ? '' : ' y el material de este gimnasio. Prueba con “Todo”'}.</p>`;
 }
@@ -1179,7 +1192,7 @@ async function finishSession(){
   for (const e of L.ex) {
     const today = e.sets.filter(s => s.done && toNum(s.reps) && !['w','d','x'].includes(s.t)).map(s => setVal(e.n, toNum(s.kg), toNum(s.reps), new Date())).filter(v => v.kg).map(v => v.v);
     if (!today.length) continue;
-    const prevBest = Math.max(0, ...history(e.n).map(h => h.best.kg ? h.best.v : 0));
+    const prevBest = Math.max(0, ...exHistory(e.n).map(h => h.best.kg ? h.best.v : 0));
     const best = Math.max(...today);
     if (prevBest && best > prevBest) prs.push({n:e.n, v:best, prev:prevBest});
   }
@@ -1303,14 +1316,14 @@ function recentPRs(days){
   const names = new Set(); for (const s of S.all) for (const e of s.ex) names.add(e.n);
   const latest = new Map();
   for (const n of names) {
-    const h = history(n).filter(x => x.best.kg).slice().reverse(); let best = 0;
+    const h = exHistory(n).filter(x => x.best.kg).slice().reverse(); let best = 0;
     for (const x of h) { if (x.best.v > best) { if (best && x.date >= cut) latest.set(n, {n, date:x.date, v:x.best.v, kg:x.best.kg, reps:x.best.reps, bwl:x.best.bwl}); best = x.best.v; } }
   }
   return [...latest.values()].sort((a,b) => b.date - a.date);
 }
 function drawExDetail(){
   const box = $('#exDetail'); if (!box || !S.exSel) return;
-  const n = S.exSel, m = meta(n), h = history(n);
+  const n = S.exSel, m = meta(n), h = exHistory(n);
   if (!h.length) { box.innerHTML = ''; return; }
   const bw = !h.some(x => x.best.kg), u = m.time ? 's' : 'reps', bwl = h.some(x => x.best.bwl);
   const pts = h.slice(0, 40).reverse().map(x => ({x:x.date, y: bw ? x.best.reps : Math.round(x.best.v*10)/10, label: bw ? `${x.best.reps} ${u}` : `${fmtKg(x.best.kg)} kg${x.best.bwl ? ' (peso + lastre)' : ''} × ${x.best.reps}`}));
@@ -1819,8 +1832,46 @@ function render(){
   if (S.tab === 'rec') v.innerHTML = renderRecovery();
   if (S.tab === 'body') { if (curProf().person !== 'me') { v.innerHTML = `<div class="card empty"><h2>Cuerpo</h2><p>El peso, las medidas y las fotos son de Luis. Cambia al perfil de Luis para verlos.</p><button class="btn primary" data-home>Cambiar de perfil</button></div>`; return; } v.innerHTML = renderBody(); drawBodyCharts(); }
   if (S.tab === 'more') v.innerHTML = (typeof renderProfilesMore === 'function' ? renderProfilesMore() : '') + renderMore();
+  /* Entreno en curso visible desde cualquier pestaña */
+  if (S.live && S.tab !== 'train') v.insertAdjacentHTML('afterbegin', `<button class="live-bar" data-tab="train"><span class="dot"></span><span><b>Entreno en curso</b> · ${esc(S.live.routine && ROUTINES[S.live.routine] ? ROUTINES[S.live.routine].code : 'Libre')} · ${Math.max(0, Math.round((Date.now() - S.live.start) / 60000))} min</span><span>Volver ›</span></button>`);
 }
-function go(tab){ S.tab = tab; S.lastDone = tab === 'train' ? S.lastDone : null; render(); window.scrollTo({top:0}); }
+function go(tab, back){
+  if (!back && tab !== S.tab) { (S.nav ||= []).push(S.tab); if (S.nav.length > 20) S.nav.shift(); }
+  S.tab = tab; S.lastDone = tab === 'train' ? S.lastDone : null; render(); window.scrollTo({top:0});
+}
+/* Volver atrás (gesto desde el borde izquierdo, botón atrás de Android o del navegador). Devuelve false si no hay a dónde volver. */
+function goBack(){
+  const sh = $('#sheet'); if (sh && !sh.hidden) { ED = null; PENDING_RESTORE = null; closeSheet(!!S.live); return true; }
+  if (S.wiz) { if (S.wiz.step === 'preview') S.wiz.step = 'form'; else { S.wiz = null; S.home = true; } render(); window.scrollTo({top:0}); return true; }
+  if (S.tab === 'train' && S.home && !S.live) { S.home = false; render(); return true; }
+  if (S.tab === 'train' && S.lastDone && !S.live) { S.lastDone = null; render(); return true; }
+  if (S.nav && S.nav.length) { go(S.nav.pop(), true); return true; }
+  if (S.tab === 'train' && S.live) { sheetExit(); return true; }
+  if (S.tab !== 'train') { go('train', true); return true; }
+  return false;
+}
+/* Navegador y Android: el botón/gesto de atrás llega como popstate; se deja siempre una entrada "de guarda" */
+/* Chrome ignora al ir atrás las entradas creadas sin un toque del usuario, así que la guarda se pone al tocar algo */
+let BL_GUARD = false;
+const blGuard = () => { if (BL_GUARD) return; try { history.pushState({bl:1}, ''); BL_GUARD = true; } catch(e) {} };
+document.addEventListener('click', blGuard, true);
+window.addEventListener('popstate', () => { BL_GUARD = false; if (goBack()) blGuard(); });
+/* App instalada en el iPhone: no hay gesto de atrás del sistema, así que se imita deslizando desde el borde izquierdo */
+const STANDALONE = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+let EB = null;
+document.addEventListener('touchstart', e => {
+  const x = e.touches[0].clientX; if (!STANDALONE || x > 24 || e.touches.length > 1) { EB = null; return; }
+  EB = {x, y:e.touches[0].clientY, dx:0, el:null};
+}, {passive:true});
+document.addEventListener('touchmove', e => {
+  if (!EB) return; const dx = e.touches[0].clientX - EB.x, dy = Math.abs(e.touches[0].clientY - EB.y);
+  if (dy > 40 && dx < 30) { EB.el && EB.el.remove(); EB = null; return; }
+  EB.dx = dx;
+  if (!EB.el) { EB.el = document.createElement('div'); EB.el.className = 'edge-back'; EB.el.innerHTML = '‹'; document.body.appendChild(EB.el); }
+  EB.el.style.transform = `translate(${Math.min(70, Math.max(0, dx) * .6) - 44}px, ${e.touches[0].clientY - 22}px)`;
+  EB.el.classList.toggle('on', dx > 80);
+}, {passive:true});
+document.addEventListener('touchend', () => { if (!EB) return; const ok = EB.dx > 80; EB.el && EB.el.remove(); EB = null; if (ok) goBack(); });
 
 document.addEventListener('click', async e => {
   const t = e.target;
@@ -1962,11 +2013,12 @@ document.addEventListener('click', async e => {
   const kn = t.closest('[data-knee]'); if (kn) { const [i,j] = kn.dataset.knee.split('-').map(Number); return sheetKnee(i, j); }
   const kset = t.closest('[data-kneeset]'); if (kset) { const [i,j,v] = kset.dataset.kneeset.split('-'); S.live.ex[+i].sets[+j].knee = v; scheduleSave(); closeSheet(true); if (v !== '' && +v >= 5) toast(`${painLab()} en rojo: para este ejercicio o cámbialo.`); return; }
   if (t.closest('#finish')) return sheetFinish();
+  if (t.closest('#liveExit')) return sheetExit();
   if (t.closest('#finishYes')) { closeSheet(); return finishSession(); }
   if (t.closest('#liveMenu')) return openSheet(`<h3 class="sheet-t">Sesión en curso</h3><div class="sheet-list"><button class="sheet-item" data-act="order" data-i="0">↕︎ Ordenar ejercicios</button></div><div id="discardZone" style="margin-top:14px"><button class="btn danger wide" id="discard">Descartar sesión</button></div>`);
   if (t.closest('#discard')) { $('#discardZone').innerHTML = `<div class="confirm"><span>¿Borrar esta sesión sin guardarla?</span><button class="btn small danger" id="discardYes">Sí, borrar</button><button class="btn small ghost" id="discardNo">Cancelar</button></div>`; return; }
   if (t.closest('#discardNo')) { $('#discardZone').innerHTML = `<button class="btn danger wide" id="discard">Descartar sesión</button>`; return; }
-  if (t.closest('#discardYes')) { closeSheet(); const id = S.live.id; S.live = null; delete S.app[id]; await IDB.del('sessions', id); stopRest(); keepAwake(false); render(); return; }
+  if (t.closest('#discardYes')) { closeSheet(); const id = S.live.id; S.live = null; delete S.app[id]; await IDB.del('sessions', id); stopRest(); keepAwake(false); S.tab = 'train'; render(); window.scrollTo({top:0}); toast('Entreno descartado'); return; }
 });
 
 document.addEventListener('input', e => {

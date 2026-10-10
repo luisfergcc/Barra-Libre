@@ -114,7 +114,7 @@ function wizProgram(){
   const q = S.wiz.q, person = S.wiz.editId ? S.wiz.person : q.person === 'me' ? 'me' : null;
   const exKey = person === 'me' ? 'excluded' : person ? `excluded:${person}` : null;
   const excl = exKey ? kv(exKey, exKey === 'excluded' ? EXCL_DEFAULT : []) : [];
-  const hist = person && person === curProf().person ? n => history(n).length : () => 0;
+  const hist = person && person === curProf().person ? n => exHistory(n).length : () => 0;
   return genProgram({...q, eq:wizEq(q), excl, hist, days:+q.days, minutes:+q.minutes});
 }
 function renderWizPreview(){
