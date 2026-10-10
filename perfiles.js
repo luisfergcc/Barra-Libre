@@ -6,8 +6,12 @@
 const BASE_PLAN = {R: JSON.parse(JSON.stringify(ROUTINES)), O: ORDER.slice()};
 const DEF_PROFILE = {id:'me', name:'Luis', person:'me', builtin:true, q:{main:'hip', sec:'rehab', zone2:'rodilla', days:4, issues:['rodilla']}};
 const STRENGTH_GOALS = ['hip','fuerza','grasa'];
+/* Objetivos para otras personas: ocultos salvo que se activen en Más */
+const EXTRA_GOALS = ['mayores','rehab','opos'];
+const goalShown = (k, keep) => kv('extraGoals', false) || !EXTRA_GOALS.includes(k) || k === keep;
 
-function profiles(){ return [DEF_PROFILE].concat((kv('profiles', []) || []).filter(p => p && p.id !== 'me')); }
+/* Los perfiles 'lv' (programa por niveles, quitado en 1.7.0) se ignoran: sus sesiones siguen en la copia, pero no se muestran */
+function profiles(){ return [DEF_PROFILE].concat((kv('profiles', []) || []).filter(p => p && p.id !== 'me' && p.kind !== 'lv' && p.prog)); }
 const curProf = () => profiles().find(p => p.id === kv('profile', 'me')) || DEF_PROFILE;
 const personOf = pid => { const p = profiles().find(x => x.id === pid); return p ? p.person : pid; };
 /* Claves que van por persona (excluidos, gimnasio elegido, descarga). Las de Luis siguen igual que antes. */
@@ -27,8 +31,7 @@ function applyProfile(){
   const p = curProf();
   for (const k in ROUTINES) delete ROUTINES[k];
   ORDER.length = 0;
-  if (p.kind === 'lv') { PRR = {}; }
-  else if (p.builtin || !p.prog) { Object.assign(ROUTINES, JSON.parse(JSON.stringify(BASE_PLAN.R))); ORDER.push(...BASE_PLAN.O); PRR = {}; }
+  if (p.builtin || !p.prog) { Object.assign(ROUTINES, JSON.parse(JSON.stringify(BASE_PLAN.R))); ORDER.push(...BASE_PLAN.O); PRR = {}; }
   else { Object.assign(ROUTINES, JSON.parse(JSON.stringify(p.prog.routines))); ORDER.push(...p.prog.order); PRR = p.prog.rr || {}; }
   REC_CACHE = null;
 }
@@ -40,29 +43,25 @@ async function switchProfile(id){
 /* ---------- barra de perfil en Entrenar ---------- */
 function profBar(){
   const p = curProf();
-  return `<div class="profbar"><button class="chip" data-home aria-label="Cambiar de perfil u objetivo">👤 <b>${esc(p.name)}</b> · ${p.builtin ? `Plan ${PLAN_VERSION} (D1-D4)` : p.kind === 'lv' ? '🪜 Programa por niveles' : esc(goalLab(p.q))} <span class="faint">▾</span></button></div>`;
+  return `<div class="profbar"><button class="chip" data-home aria-label="Cambiar de perfil u objetivo">👤 <b>${esc(p.name)}</b> · ${p.builtin ? `Plan ${PLAN_VERSION} (D1-D4)` : esc(goalLab(p.q))} <span class="faint">▾</span></button></div>`;
 }
 
 /* ---------- pantalla de inicio: ¿Qué entrenamos? ---------- */
 function renderHome(){
   const list = profiles(), cur = curProf();
   return `<div class="stack">
+    ${backupBanner()}
     <section class="card pad stack" style="gap:10px">
       <h2>Seguir con</h2>
-      <div class="sheet-list">${list.map(p => { const n = p.builtin ? 4 : p.kind === 'lv' ? 0 : p.prog.order.length;
-        return `<button class="prof-card ${p.id === cur.id ? 'on' : ''}" data-prof="${esc(p.id)}"><span class="pc-ic">${p.builtin ? '🏋️' : p.kind === 'lv' ? '🪜' : (GOALS[p.q.main] || {}).ic || '•'}</span><span class="pc-t"><b>${esc(p.name)}${p.builtin ? ' · tu plan' : ''}</b><small>${p.builtin ? `Hipertrofia + cuidar la rodilla · D1-D4 · plan ${PLAN_VERSION}` : p.kind === 'lv' ? 'Programa por niveles con fisio · semáforo antes de cada sesión' : `${esc(goalLab(p.q).replace(/^\S+ /, ''))}${secLab(p.q) ? ' + ' + esc(secLab(p.q)) : ''} · ${p.q.days} días · ${n} rutinas · ~${p.q.minutes} min`}</small></span><span class="faint">›</span></button>`; }).join('')}</div>
+      <div class="sheet-list">${list.map(p => { const n = p.builtin ? 4 : p.prog.order.length;
+        return `<button class="prof-card ${p.id === cur.id ? 'on' : ''}" data-prof="${esc(p.id)}"><span class="pc-ic">${p.builtin ? '🏋️' : (GOALS[p.q.main] || {}).ic || '•'}</span><span class="pc-t"><b>${esc(p.name)}${p.builtin ? ' · tu plan' : ''}</b><small>${p.builtin ? `Hipertrofia + cuidar la rodilla · D1-D4 · plan ${PLAN_VERSION}` : `${esc(goalLab(p.q).replace(/^\S+ /, ''))}${secLab(p.q) ? ' + ' + esc(secLab(p.q)) : ''} · ${p.q.days} días · ${n} rutinas · ~${p.q.minutes} min`}</small></span><span class="faint">›</span></button>`; }).join('')}</div>
     </section>
     <section class="card pad stack" style="gap:10px">
       <h2>Nuevo objetivo</h2>
       <p class="muted" style="margin:0;font-size:14px">Elige qué quieres entrenar. Te haré unas preguntas cortas y la app armará la rutina con los estudios de ese objetivo.</p>
-      <div class="goal-grid">${Object.entries(GOALS).map(([k,g]) => `<button class="goal-b" data-wiznew="${k}"><span class="gb-ic">${g.ic}</span><b>${esc(g.lab)}</b><small>${esc(g.sub)}</small></button>`).join('')}</div>
+      <div class="goal-grid">${Object.entries(GOALS).filter(([k]) => goalShown(k)).map(([k,g]) => `<button class="goal-b" data-wiznew="${k}"><span class="gb-ic">${g.ic}</span><b>${esc(g.lab)}</b><small>${esc(g.sub)}</small></button>`).join('')}</div>
     </section>
-    <section class="card pad stack" style="gap:8px">
-      <h2>Programa por niveles con fisio</h2>
-      <p class="muted" style="margin:0;font-size:14px">Para empezar desde muy poco, con dolor crónico o miedo a caerse: semáforo antes de cada sesión, ejercicios sentada, tumbada o con apoyo, y un cambio cada vez.</p>
-      <button class="btn wide" data-lvnew>🪜 Crear perfil por niveles</button>
-    </section>
-    <label class="row muted" style="gap:8px;font-size:14px;justify-content:center"><input type="checkbox" data-askstart ${kv('askStart', true) ? 'checked' : ''}> Preguntar al abrir la app</label>
+    <label class="row muted" style="gap:8px;font-size:14px;justify-content:center"><input type="checkbox" data-askstart ${kv('askStart', false) ? 'checked' : ''}> Preguntar al abrir la app</label>
   </div>`;
 }
 
@@ -82,7 +81,7 @@ function wizEq(q){ if (MAT[q.gym]) return MAT[q.gym].eq.slice(); const g = S.gym
 function renderWizard(){
   const W = S.wiz, q = W.q;
   if (W.step === 'preview') return renderWizPreview();
-  const goalOpts = Object.fromEntries(Object.entries(GOALS).map(([k,g]) => [k, `${g.ic} ${g.lab}`]));
+  const goalOpts = Object.fromEntries(Object.entries(GOALS).filter(([k]) => goalShown(k, q.main)).map(([k,g]) => [k, `${g.ic} ${g.lab}`]));
   const zoneOpts = Object.fromEntries(Object.entries(ZONES).map(([k,z]) => [k, z.lab]));
   const musOpts = Object.fromEntries(['pe','es','ho','bi','tr','cu','fe','gl','ge','co'].filter(k => MUSCLES[k]).map(k => [k, MUSCLES[k]]));
   const gymOpts = Object.fromEntries(S.gyms.map(g => [g.id, g.name]).concat(Object.entries(MAT).map(([k,m]) => [k, m.lab])));
@@ -91,7 +90,7 @@ function renderWizard(){
     <section class="card pad stack wiz" style="gap:14px">
       <div class="wz-f"><span class="eyebrow">1 · ¿Para quién?</span>
         ${W.editId ? `<p class="muted" style="margin:0;font-size:14px">${W.person === 'me' ? 'Para ti (Luis): usa tu historial.' : 'Otra persona: historial propio.'}</p>` : chipRow('person', {me:'Para mí (Luis)', new:'Otra persona'}, q.person)}
-        <div class="row" style="gap:8px"><input class="field" id="wzName" style="flex:2" placeholder="${q.person === 'me' ? 'Nombre del objetivo (p. ej. Luis · Movilidad)' : 'Nombre (p. ej. Mamá)'}" value="${esc(q.name)}" autocomplete="off"><input class="field" id="wzAge" style="flex:1" inputmode="numeric" placeholder="Edad" value="${esc(q.age)}" autocomplete="off" aria-label="Edad (opcional)"></div></div>
+        <div class="row" style="gap:8px"><input class="field" id="wzName" style="flex:2" placeholder="${q.person === 'me' ? 'Nombre del objetivo (p. ej. Luis · Movilidad)' : 'Nombre (p. ej. Ana)'}" value="${esc(q.name)}" autocomplete="off"><input class="field" id="wzAge" style="flex:1" inputmode="numeric" placeholder="Edad" value="${esc(q.age)}" autocomplete="off" aria-label="Edad (opcional)"></div></div>
       <div class="wz-f"><span class="eyebrow">2 · Objetivo principal (≈ 80 % del trabajo)</span>${chipRow('main', goalOpts, q.main)}
         ${q.main === 'rehab' ? `<span class="faint" style="font-size:13px">Zona</span>${chipRow('zone', zoneOpts, q.zone)}` : ''}
         ${q.main === 'opos' ? `<span class="faint" style="font-size:13px">Oposición</span>${chipRow('opos', {pn:'Policía Nacional', gen:'Genérica'}, q.opos)}<span class="faint" style="font-size:13px">Baremo</span>${chipRow('sex', {h:'Hombre', m:'Mujer'}, q.sex)}` : ''}
@@ -159,10 +158,11 @@ function renderProfilesMore(){
   return `<div class="stack" style="margin-bottom:var(--gap, 14px)"><section class="card pad stack" style="gap:10px">
     <header class="row" style="justify-content:space-between"><h2>Perfiles y objetivos</h2><button class="btn small" data-home>+ Nuevo</button></header>
     <p class="muted" style="margin:0;font-size:14px">Cada perfil tiene su rutina y su historial. Los objetivos que crees "para mí" comparten tu historial con el plan D1-D4.</p>
-    <div class="sheet-list">${list.map(p => `<div class="sheet-item sess-row"><span><b>${esc(p.name)}${p.id === cur.id ? ' · activo' : ''}</b><small>${p.builtin ? `Plan ${PLAN_VERSION} · D1-D4` : p.kind === 'lv' ? `Programa por niveles · creado ${esc(p.created || '')}` : `${esc(goalLab(p.q))} · ${p.q.days} días · creado ${esc(p.created || '')}`}</small></span>
-      <span class="row" style="gap:6px">${p.id === cur.id ? '' : `<button class="btn small" data-prof="${esc(p.id)}">Usar</button>`}${p.builtin ? '' : `${p.kind === 'lv' ? '' : `<button class="btn small ghost" data-profredo="${esc(p.id)}">Rehacer</button>`}<button class="btn small ghost" data-profdel="${esc(p.id)}" aria-label="Borrar ${esc(p.name)}">✕</button>`}</span></div>`).join('')}</div>
+    <div class="sheet-list">${list.map(p => `<div class="sheet-item sess-row"><span><b>${esc(p.name)}${p.id === cur.id ? ' · activo' : ''}</b><small>${p.builtin ? `Plan ${PLAN_VERSION} · D1-D4` : `${esc(goalLab(p.q))} · ${p.q.days} días · creado ${esc(p.created || '')}`}</small></span>
+      <span class="row" style="gap:6px">${p.id === cur.id ? '' : `<button class="btn small" data-prof="${esc(p.id)}">Usar</button>`}${p.builtin ? '' : `<button class="btn small ghost" data-profredo="${esc(p.id)}">Rehacer</button><button class="btn small ghost" data-profdel="${esc(p.id)}" aria-label="Borrar ${esc(p.name)}">✕</button>`}</span></div>`).join('')}</div>
     <div id="profDelZone"></div>
-    <label class="row muted" style="gap:8px;font-size:14px"><input type="checkbox" data-askstart ${kv('askStart', true) ? 'checked' : ''}> Preguntar qué entrenamos al abrir la app</label>
+    <label class="row muted" style="gap:8px;font-size:14px"><input type="checkbox" data-extragoals ${kv('extraGoals', false) ? 'checked' : ''}> Mostrar objetivos para otras personas (mayores, rehabilitación y oposiciones)</label>
+    <label class="row muted" style="gap:8px;font-size:14px"><input type="checkbox" data-askstart ${kv('askStart', false) ? 'checked' : ''}> Preguntar qué entrenamos al abrir la app</label>
   </section></div>`;
 }
 
@@ -363,5 +363,6 @@ document.addEventListener('input', e => {
 });
 document.addEventListener('change', async e => {
   const el = e.target;
+  if (el.matches && el.matches('[data-extragoals]')) { await setKv('extraGoals', el.checked); toast(el.checked ? 'Objetivos para otras personas visibles' : 'Objetivos para otras personas ocultos'); }
   if (el.matches && el.matches('[data-askstart]')) { await setKv('askStart', el.checked); toast(el.checked ? 'Te preguntaré al abrir' : 'Se abrirá directo en tu rutina'); }
 });

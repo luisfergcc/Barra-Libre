@@ -1,5 +1,5 @@
 /* =====================================================================
-   BARRA LIBRE · datos fijos (plan v1.3)
+   BARRA LIBRE · datos fijos (plan v1.5)
    Si cambia el plan, se actualiza aquí: rutinas, calentamientos y ejercicios.
    ===================================================================== */
 
@@ -12,7 +12,7 @@ const RECOV_H = {pe:72,es:72,cu:72,fe:72,gl:72,ho:48,bi:48,tr:48,ad:48,ge:48,co:
 const EQUIP = {
   db:'Mancuernas', bb:'Barra y discos', bench:'Banco ajustable', smith:'Máquina Smith', cable:'Poleas',
   pull:'Barra de dominadas', dip:'Paralelas', lp:'Prensa', lext:'Extensión de cuádriceps', lcurl:'Curl femoral',
-  abd:'Abductores', add:'Aductores', calf:'Gemelo en máquina', pec:'Peck deck', cpress:'Press de pecho en máquina',
+  abd:'Abductores', add:'Aductores', calf:'Gemelo en máquina', pec:'Pec deck', cpress:'Press de pecho en máquina',
   latm:'Jalón al pecho', rowm:'Remo en máquina', tbar:'Remo en T', latrm:'Laterales en máquina', rearm:'Pájaros en máquina',
   crunchm:'Crunch en máquina', hyper:'Banco de hiperextensiones', dipm:'Fondos en máquina', hipm:'Hip thrust en máquina', band:'Bandas elásticas',
   kb:'Kettlebell', box:'Cajón o step', hack:'Hack squat o péndulo', trap:'Barra hexagonal', assist:'Dominadas asistidas (máquina)', shm:'Press de hombro en máquina', prec:'Curl en máquina o banco Scott', wheel:'Rueda abdominal'
@@ -34,7 +34,7 @@ const EX = {
  'Incline Chest Press (Machine)':['Press inclinado en máquina','pe ho',8,12,0,120,'press_inc',['cpress']],
  'Incline Bench Press (Smith Machine)':['Press inclinado en Smith','pe ho',8,12,0,150,'press_inc',['smith','bench']],
  'Push Up':['Flexiones','pe tr',8,20,0,90,'press_h',[]],
- 'Chest Fly (Machine)':['Peck deck','pe',10,12,0,90,'fly',['pec']],
+ 'Chest Fly (Machine)':['Pec deck','pe',10,12,0,90,'fly',['pec']],
  'Cable Fly Crossovers':['Cruces en polea','pe',10,15,0,90,'fly',['cable']],
  'Incline Chest Fly (Dumbbell)':['Aperturas inclinadas','pe',10,15,0,90,'fly',['db','bench']],
  'Chest Dip':['Fondos','pe tr',6,12,0,120,'press_h',['dip']],
@@ -210,14 +210,17 @@ const SKIP = new Set(['Walking','Stretching','Treadmill Incline Walk']);
 /* Rutinas del plan (nombres de Hevy, en orden) */
 const ROUTINES = {
  d1:{code:'D1', title:'Pecho · Hombro · Tríceps', warm:'short', knee:true,
-     ex:['Incline Bench Press (Dumbbell)','Chest Press (Machine)','Chest Fly (Machine)','Lateral Raise (Dumbbell)','Triceps Pushdown','Overhead Triceps Extension (Cable)']},
+     ex:['Incline Bench Press (Dumbbell)','Chest Press (Machine)','Chest Fly (Machine)','Lateral Raise (Dumbbell)','Triceps Pushdown','Overhead Triceps Extension (Cable)'],
+     sets:{'Overhead Triceps Extension (Cable)':4}},
  d2:{code:'D2', title:'Espalda · Bíceps', warm:'short',
      ex:['Pull Up','Lat Pulldown (Cable)','Seated Row (Machine)','T Bar Row','Single Arm Lat Pulldown','Face Pull','Bicep Curl (Cable)','Cross Body Hammer Curl']},
  d3:{code:'D3', title:'Pierna', warm:'full',
      ex:['Leg Press (Machine)','Romanian Deadlift (Barbell)','Leg Extension (Machine)','Seated Leg Curl (Machine)','Hip Abduction (Machine)','Hip Adduction (Machine)','Single Leg Standing Calf Raise (Machine)'],
      sets:{'Leg Press (Machine)':4,'Leg Extension (Machine)':4,'Seated Leg Curl (Machine)':4,'Hip Adduction (Machine)':2}},
  d4:{code:'D4', title:'Hombro · Pecho', warm:'short', knee:true,
-     ex:['Shoulder Press (Dumbbell)','Lateral Raise (Machine)','Single Arm Lateral Raise (Cable)','Chest Supported Reverse Fly (Dumbbell)','Incline Bench Press (Smith Machine)','Crunch (Machine)']}
+     ex:['Shoulder Press (Dumbbell)','Single Arm Lateral Raise (Cable)','Lateral Raise (Machine)','Chest Supported Reverse Fly (Dumbbell)','Incline Bench Press (Smith Machine)','Crunch (Machine)'],
+     /* superseries: laterales en máquina + pájaros (deltoides lateral y posterior, no compiten) */
+     ss:[['Lateral Raise (Machine)','Chest Supported Reverse Fly (Dumbbell)']]}
 };
 const ORDER = ['d1','d2','d3','d4'];
 
@@ -226,7 +229,7 @@ const WARM = {
  full:['Bici o caminata suave · 3 min','90/90 de cadera · 8 cambios','Flexor de cadera en zancada · 30 s por lado','Rana en cuadrupedia · 10 balanceos','Puente de glúteo · 12 reps','Pasos laterales con mini banda · 10 por lado','Sentadilla isométrica en pared · 2 × 30-45 s','Sentadilla goblet con pausa · 5 reps','Extensión de cuádriceps ligera · 2 × 15']
 };
 const KNEE_BLOCK = ['Sentadilla isométrica en pared · 2 × 45 s','Extensión terminal de rodilla · 2 × 15 por pierna','Bajada lenta desde escalón · 2 × 8 por pierna'];
-const PLAN_VERSION = 'v1.3';
+const PLAN_VERSION = 'v1.5';
 /* Series fijadas por el plan (si no aparece, 3) */
 const planSets = (n, def = 3) => { for (const k of ORDER) { const st = ROUTINES[k].sets; if (st && st[n]) return st[n]; } return def; };
 
@@ -303,7 +306,7 @@ const BIG = ['cu','es','pe','fe'];
 
 /* Consejo basado en estudios para ejercicios concretos */
 const EX_TIPS = {
- 'Overhead Triceps Extension (Cable)':{ev:'maeo23', txt:'Brazo por encima de la cabeza: el tríceps creció ~40 % más que en polea alta. Es tu mejor ejercicio de tríceps.'},
+ 'Overhead Triceps Extension (Cable)':{ev:'maeo23', txt:'Brazo por encima de la cabeza: el tríceps creció ~40 % más que con la misma extensión en polea alta (el estudio no lo comparó con otros ejercicios).'},
  'Overhead Triceps Extension (Dumbbell)':{ev:'maeo23', txt:'Brazo por encima de la cabeza: el tríceps creció ~40 % más que en polea alta.'},
  'Triceps Pushdown':{ev:'maeo23', txt:'Suma, pero la versión tras nuca hizo crecer más el tríceps. Si vas justo de tiempo, prioriza la tras nuca.'},
  'Triceps Rope Pushdown':{ev:'maeo23', txt:'Suma, pero la versión tras nuca hizo crecer más el tríceps.'},

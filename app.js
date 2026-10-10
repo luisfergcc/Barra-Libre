@@ -1,6 +1,6 @@
 /* =====================================================================
    BARRA LIBRE · lógica de la app
-   Todo se guarda en este iPhone (IndexedDB). Copia de seguridad en Más.
+   Todo se guarda en este dispositivo (IndexedDB). Copia de seguridad en Más.
    ===================================================================== */
 
 /* ---------- utilidades ---------- */
@@ -19,6 +19,8 @@ const daysAgo = d => Math.round((startOfDay(new Date()) - startOfDay(d)) / 864e5
 const weekStart = d => { const x = startOfDay(d); x.setDate(x.getDate() - (x.getDay()+6)%7); return x; };
 const e1rm = (kg, reps) => (kg||0) * (1 + Math.min(reps,15)/30);
 const ago = d => { const n = daysAgo(d); return n <= 0 ? 'hoy' : n === 1 ? 'ayer' : n < 14 ? `hace ${n} días` : n < 60 ? `hace ${Math.round(n/7)} semanas` : `hace ${Math.round(n/30)} meses`; };
+/* 1 serie, 2 series: concordancia en los textos */
+const pl = (n, one, many) => `${n} ${n == 1 ? one : (many || one + 's')}`;
 const uid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
 function toast(msg){ document.querySelectorAll('.toast').forEach(x => x.remove()); const t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role','status'); t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 2800); }
 
@@ -80,7 +82,7 @@ async function loadAll(){
   if (!S.gyms.length) { const g = {id:'g-main', name:'Mi gimnasio', eq:GYM_PRESETS.full.slice()}; S.gyms = [g]; await IDB.put('gyms', g); }
   const live = Object.values(S.app).find(s => s.status === 'live');
   if (live) S.live = live;
-  if (typeof applyProfile === 'function') { if (live && live.p && live.p !== kv('profile', 'me') && profiles().some(p => p.id === live.p)) await setKv('profile', live.p); applyProfile(); S.home = !live && kv('askStart', true); }
+  if (typeof applyProfile === 'function') { if (live && live.p && live.p !== kv('profile', 'me') && profiles().some(p => p.id === live.p)) await setKv('profile', live.p); applyProfile(); S.home = !live && kv('askStart', false); }
   rebuild();
   S.ready = true;
   try { if (navigator.storage && navigator.storage.persist) await navigator.storage.persist(); } catch(e) {}
@@ -181,6 +183,8 @@ const roundTo = (v, step) => Math.round(v/step)*step;
 function suggest(name){
   const m = meta(name), hist = history(name);
   if (m.mins) return suggestMins(name, m, hist);
+  const lad = typeof LADDER_OF !== 'undefined' ? LADDER_OF[name] : null;
+  if (!hist.length && lad && needsKg(name)) return {tone:'new', tag:'NUEVO', kg:LADDER_START_KG, reps:`${m.lo}-${m.hi}`, text:`Empieza con <b>${LADDER_START_KG} kg</b> y ${m.lo}-${m.hi} reps con buena técnica. Sube 1-2 kg cuando hagas ${m.hi} en todas las series.`};
   if (!hist.length) return {tone:'new', tag:'NUEVO', text:`Busca un peso con el que hagas <b>${m.lo}-${m.hi}</b> reps dejando 2 en reserva.`, kg:null, reps:`${m.lo}-${m.hi}`};
   const last = hist[0], step = stepOf(name, hist);
   const bw = !last.sets.some(x => x.kg);
@@ -195,8 +199,10 @@ function suggest(name){
   if (knee >= 5) { const kg = bw ? null : roundTo(w*0.85, step);
     return {...base, tone:'down', tag:painLab().toUpperCase(), kg, reps:`${m.lo}-${m.hi}`, text:`La última vez ${painLab() === 'Rodilla' ? 'la rodilla' : 'el dolor'} llegó a ${knee}/10. ${kg ? `Baja a <b>${fmtKg(kg)} kg</b> y acorta el recorrido` : 'Acorta el recorrido'}; si vuelve a doler, cambia de ejercicio.`}; }
   if (m.time) { const minS = Math.min(...last.sets.map(x => x.reps)), tgt = Math.min(m.hi, minS + 5);
+    if (minS >= m.hi && lad && lad.next) return {...base, tone:'up', tag:'SIGUIENTE', kg:null, reps:`${m.hi}`, text:`Aguantaste ${m.hi} s en todas: ya puedes pasar al siguiente paso, <b>${esc(meta(lad.next).es)}</b> (puedes cambiarlo desde ⋮ → Reemplazar).`};
     return minS >= m.hi ? {...base, tone:'up', tag:'SUBE', kg:null, reps:`${m.hi}`, text:`Aguantaste ${m.hi} s en todas: suma 10 s o algo de peso.`}
       : {...base, tone:'hold', tag:'MANTÉN', kg:null, reps:`${tgt}`, text:`Intenta aguantar <b>${tgt} s</b> en cada serie.`}; }
+  if (bw && lad && lad.next && minR >= m.hi && last.sets.length >= 2) return {...base, tone:'up', tag:'SIGUIENTE', kg:null, reps:`${m.hi}`, text:`Hiciste ${m.hi} en todas las series: pasa al siguiente paso de la escalera, <b>${esc(meta(lad.next).es)}</b> (desde ⋮ → Reemplazar).`};
   if (bw) { const tgt = Math.min(m.hi, minR + 1);
     return {...base, tone: minR >= m.hi ? 'up':'hold', tag: minR >= m.hi ? 'SUBE':'MANTÉN', kg:null, reps:`${tgt}`, text: minR >= m.hi ? `Hiciste ${m.hi}+ en todas: añade lastre o haz una serie más.` : `Intenta <b>${tgt} reps</b> en cada serie.`}; }
   if (knee >= 3) return {...base, tone:'hold', tag:'ÁMBAR', kg:w, reps:`${m.lo}-${m.hi}`, text:`${painLab()} en ${knee}/10 la última vez: mantén <b>${fmtKg(w)} kg</b>, controla la bajada y no subas esta semana.`};
@@ -352,7 +358,7 @@ function adviceList(){
       const day = ORDER.find(k => ROUTINES[k].ex.some(n => meta(n).mus[0] === mu));
       const need = Math.ceil(10 - a);
       out.push({prio: big ? 1 : 2, kind: a < 5 ? 'bad' : 'warn', title:`${MUSCLES[mu]}: ${fmt1(a)} series/semana (meta 10-20)`, ev:['schoenfeld17v','pelland'],
-        body:`${big ? 'Es un músculo grande, con mucho margen para crecer. ' : ''}${plan[mu] >= 10 ? `Tu rutina ya da ${fmt1(plan[mu])} series si la completas; el hueco viene de las sesiones que faltan.` : `Te faltan unas <b>${need}</b> series a la semana${day ? `: súmalas en ${ROUTINES[day].code}` : ''}, sin pasar de ~11 por sesión.`}
+        body:`${big ? 'Es un músculo grande, con mucho margen para crecer. ' : ''}${plan[mu] >= 10 ? `Tu rutina ya da ${fmt1(plan[mu])} series si la completas; el hueco viene de las sesiones que faltan.` : `Te falta${need == 1 ? '' : 'n'} unas <b>${pl(need, 'serie')}</b> a la semana${day ? `: súmalas en ${ROUTINES[day].code}` : ''}, sin pasar de ~11 por sesión.`}
           ${rec.length ? `<div class="rec-ex">${rec.map(n => `<span class="chip small">${esc(meta(n).es)}${meta(n).knee ? ' · rodilla: semáforo' : ''}${EX_TIPS[n] ? ' · 📚' : ''}</span>`).join('')}</div>` : ''}`});
     } else if (a > 20) out.push({prio:3, kind:'info', title:`${MUSCLES[mu]}: ${fmt1(a)} series/semana`, ev:['pelland'],
         body:'Por encima de 20 cada serie extra suma cada vez menos (rendimientos decrecientes, Pelland). Puedes quitar 2-4 series y acortar la sesión sin perder resultados.'});
@@ -505,6 +511,13 @@ function gymBar(){
   return `<div class="gymbar" role="group" aria-label="Dónde entrenas">${S.gyms.map(g => `<button class="chip ${g.id === currentGym().id ? 'on':''}" data-gym="${g.id}" aria-pressed="${g.id === currentGym().id}">${esc(g.name)}</button>`).join('')}</div>`;
 }
 
+/* Aviso de copia de seguridad atrasada (más de 14 días o ninguna) */
+function backupBanner(){
+  const n = Object.keys(S.app).length + Object.keys(S.hevy || {}).length; if (!n) return '';
+  const b = kv('lastBackup', 0), d = b ? Math.floor((Date.now() - b) / 864e5) : null;
+  if (d != null && d < 14) return '';
+  return `<div class="banner"><span>${d == null ? 'Aún no has hecho ninguna copia de seguridad.' : `Hace ${pl(d, 'día')} de tu última copia de seguridad.`} Si borras la app, se pierde todo.</span><button class="btn small" data-tab="more">Hacer copia</button></div>`;
+}
 function renderPicker(){
   const nx = nextRoutine();
   const sel = S.pick || nx.key, r = ROUTINES[sel], gym = currentGym();
@@ -518,10 +531,8 @@ function renderPicker(){
   }).join('');
   const cards = ORDER.map(k => { const l = lastOfRoutine(k);
     return `<button class="rt ${k===sel?'sel':''}" data-pick="${k}" aria-pressed="${k===sel}"><b>${ROUTINES[k].code} · ${esc(ROUTINES[k].title)}</b><span>${l ? 'Última: '+ago(l.date) : 'Sin registros'} · ${nx.ready[k]} %</span></button>`; }).join('');
-  const backup = kv('lastBackup', 0);
-  const needBackup = S.all.length && (!backup || Date.now() - backup > 14*864e5);
   return `
-  ${needBackup ? `<div class="banner"><span>${backup ? 'Hace más de 2 semanas de tu última copia de seguridad.' : 'Aún no has hecho ninguna copia de seguridad.'}</span><button class="btn small" data-tab="more">Hacer copia</button></div>` : ''}
+  ${backupBanner()}
   ${typeof profBar === 'function' ? profBar() : ''}
   ${gymBar()}
   <section class="card next">
@@ -582,27 +593,31 @@ async function startSession(key){
 }
 let saveTimer = null;
 function scheduleSave(){ clearTimeout(saveTimer); saveTimer = setTimeout(saveLive, 300); }
-async function saveLive(){ if (!S.live) return; try { await IDB.put('sessions', JSON.parse(JSON.stringify(S.live))); S.app[S.live.id] = S.live; } catch(e) { toast('No se pudo guardar en el iPhone.'); } }
+async function saveLive(){ if (!S.live) return; try { await IDB.put('sessions', JSON.parse(JSON.stringify(S.live))); S.app[S.live.id] = S.live; } catch(e) { toast('No se pudo guardar en este dispositivo.'); } }
 
+/* El calentamiento también respeta "Ejercicios que no quieres": cada línea va ligada a su ejercicio */
+const WARM_EX = [[/^Puente de glúteo/, 'Glute Bridge'], [/mini banda/, 'Band Lateral Walk'], [/^Sentadilla isométrica en pared/, 'Wall Sit'], [/^Sentadilla goblet/, 'Goblet Squat'],
+  [/^Extensión de cuádriceps/, 'Leg Extension (Machine)'], [/^Extensión terminal/, 'Terminal Knee Extension (Band)'], [/^Bajada lenta desde escalón/, 'Lateral Step Down'],
+  [/^90\/90/, '90/90 Hip Stretch'], [/^Flexor de cadera/, 'Hip Flexor Stretch'], [/^Pull-apart/, 'Band Pull Apart']];
+const warmOk = list => { const ex = excluded(); return list.filter(t => !WARM_EX.some(([re, n]) => re.test(t) && ex.has(n))); };
 function renderLive(){
   const L = S.live, r = L.routine && ROUTINES[L.routine] ? ROUTINES[L.routine] : null;
   const mins = Math.max(0, Math.round((Date.now() - L.start)/60000));
   const warm = r && WARM[r.warm] ? `
   <details class="warm">
     <summary><span>Calentamiento${r.knee ? ' + bloque de rodilla' : ''}</span><span class="muted" style="font-weight:500">${r.warm==='full'?'8-10':'5'} min ▾</span></summary>
-    <ul>${WARM[r.warm].map((t,i) => `<li><label><input type="checkbox" id="w${i}"> <span>${esc(t)}</span></label></li>`).join('')}</ul>
-    ${r.knee ? `<h4>Bloque de rodilla</h4><ul>${KNEE_BLOCK.map((t,i) => `<li><label><input type="checkbox" id="kb${i}"> <span>${esc(t)}</span></label></li>`).join('')}</ul>${L.ex.some(e => e.n === 'Wall Sit') ? '' : '<div style="padding:0 16px 12px"><button class="btn small" data-addwall>+ Registrar la isométrica con cuenta atrás</button></div>'}` : ''}
+    <ul>${warmOk(WARM[r.warm]).map((t,i) => `<li><label><input type="checkbox" id="w${i}"> <span>${esc(t)}</span></label></li>`).join('')}</ul>
+    ${r.knee ? `<h4>Bloque de rodilla</h4><ul>${warmOk(KNEE_BLOCK).map((t,i) => `<li><label><input type="checkbox" id="kb${i}"> <span>${esc(t)}</span></label></li>`).join('')}</ul>${L.ex.some(e => e.n === 'Wall Sit') ? '' : '<div style="padding:0 16px 12px"><button class="btn small" data-addwall>+ Registrar la isométrica con cuenta atrás</button></div>'}` : ''}
   </details>` : '';
   return `
   ${deloadActive() ? '<div class="banner" style="margin-bottom:12px"><span><b>Semana de descarga:</b> mitad de series, mismo peso, deja 3 en reserva.</span></div>' : ''}
-  <div class="eyebrow" style="margin-bottom:12px">${r ? r.code : 'Libre'} · ${esc(L.gym || '')}${curProf().builtin ? '' : ' · ' + esc(curProf().name)} · en curso · <span id="liveMins">${mins}</span> min</div>
+  <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:12px"><div class="eyebrow">${r ? r.code : 'Libre'} · ${esc(L.gym || '')}${curProf().builtin ? '' : ' · ' + esc(curProf().name)} · en curso · <span id="liveMins">${mins}</span> min</div><button class="menu" id="liveMenu" aria-label="Opciones de la sesión">⋮</button></div>
   <div class="stack">
     ${warm}
     ${renderRA(L.ex.map(e => ({n:e.n, sets:e.sets.filter(x => x.t !== 'w').length})), L.routine, false)}
     ${L.ex.map((e,i) => exCard(e,i)).join('')}
     <button class="btn wide" data-picker="add">+ Agregar ejercicio</button>
     <button class="btn primary wide" id="finish">Terminar entreno</button>
-    <div id="discardZone"><button class="btn danger wide" id="discard">Descartar sesión</button></div>
   </div>`;
 }
 
@@ -634,6 +649,7 @@ function exCard(e, i){
         <button class="chip small" data-note="${i}">${note ? '✎ ' + esc(note) : '+ Ajuste de máquina'}</button>
       </div>
       ${e.from ? `<div class="subnote"><span class="swap">Cambio</span><span>En este gimnasio no hay material para ${esc(meta(e.from).es)}.</span></div>` : ''}
+      ${sg.last ? `<div class="sugg-last">La última vez: <b>${esc(setsText(sg.last.sets.filter(x => x.type !== 'w'), m.mins ? 'm' : m.time))}</b>${sg.kg != null ? ` → hoy <b>${fmtKg(sg.kg)} kg</b>` : sg.reps && (m.time || m.mins) ? ` → hoy <b>${esc(sg.reps)} ${m.mins ? 'min' : 's'}</b>` : ''}</div>` : ''}
       <div class="sugg ${sg.tone}"><span class="tag">${sg.tag}</span><p>${sg.text}</p></div>
       ${exContext(e.n)}
     </div>
@@ -898,9 +914,9 @@ function renderCalendar(){
     <header class="row" style="justify-content:space-between"><h2>Calendario</h2><span class="faint" style="font-size:12px">Toca un día para corregirlo</span></header>
     <div class="cal-nav"><button class="btn small ghost" data-calnav="-1" aria-label="Mes anterior">‹</button><b>${(t => t[0].toUpperCase() + t.slice(1))(m0.toLocaleDateString('es-ES',{month:'long', year:'numeric'}))}</b><button class="btn small ghost" data-calnav="1" aria-label="Mes siguiente" ${canNext ? '' : 'disabled'}>›</button></div>
     <div class="cal">${['L','M','X','J','V','S','D'].map(d => `<span class="cal-w">${d}</span>`).join('')}${cells.join('')}</div>
-    <p class="faint" style="font-size:12px;margin:0">${list.length} sesiones este mes · C = cardio</p>
+    <p class="faint" style="font-size:12px;margin:0">${pl(list.length, 'sesión', 'sesiones')} este mes · C = cardio</p>
     ${list.length ? `<div class="sheet-list">${list.map(x => { const sets = x.ex.reduce((a,e) => a + e.sets.length, 0);
-      return `<button class="sheet-item sess-row" data-sess="${esc(x.id)}"><span><b>${esc(x.routine && ROUTINES[x.routine] ? ROUTINES[x.routine].code + ' · ' + ROUTINES[x.routine].title : x.title)}</b><small>${fmtDate(x.date,{weekday:'short', day:'numeric', month:'short'})} · ${sets} series${x.src === 'hevy' ? ' · Hevy' : ''}</small></span><span class="faint">Editar ›</span></button>`; }).join('')}</div>` : ''}
+      return `<button class="sheet-item sess-row" data-sess="${esc(x.id)}"><span><b>${esc(x.routine && ROUTINES[x.routine] ? ROUTINES[x.routine].code + ' · ' + ROUTINES[x.routine].title : x.title)}</b><small>${fmtDate(x.date,{weekday:'short', day:'numeric', month:'short'})} · ${pl(sets, 'serie')}${x.src === 'hevy' ? ' · Hevy' : ''}</small></span><span class="faint">Editar ›</span></button>`; }).join('')}</div>` : ''}
   </section>`;
 }
 
@@ -960,7 +976,7 @@ function renderSessions(){
   return `<section class="card pad stack" style="gap:8px">
     <header class="row" style="justify-content:space-between"><h2>Sesiones</h2><span class="faint" style="font-size:12px">Toca una para corregirla</span></header>
     <div class="sheet-list">${list.map(s => { const sets = s.ex.reduce((a,e) => a + e.sets.length, 0);
-      return `<button class="sheet-item sess-row" data-sess="${esc(s.id)}"><span><b>${esc(s.routine && ROUTINES[s.routine] ? ROUTINES[s.routine].code + ' · ' + ROUTINES[s.routine].title : s.title)}</b><small>${fmtDate(s.date,{weekday:'short', day:'numeric', month:'short'})} · ${sets} series${s.src === 'hevy' ? ' · Hevy' : ''}</small></span><span class="faint">Editar ›</span></button>`; }).join('')}</div>
+      return `<button class="sheet-item sess-row" data-sess="${esc(s.id)}"><span><b>${esc(s.routine && ROUTINES[s.routine] ? ROUTINES[s.routine].code + ' · ' + ROUTINES[s.routine].title : s.title)}</b><small>${fmtDate(s.date,{weekday:'short', day:'numeric', month:'short'})} · ${pl(sets, 'serie')}${s.src === 'hevy' ? ' · Hevy' : ''}</small></span><span class="faint">Editar ›</span></button>`; }).join('')}</div>
     ${S.all.length > 8 ? `<button class="btn ghost wide" data-allsess>${S.showAllSess ? 'Ver menos' : 'Ver más'}</button>` : ''}
   </section>`;
 }
@@ -1001,7 +1017,7 @@ function analyzeRoutine(items, key){
       const rec = recommendFor(mu, 2, names).filter(n => !exc.has(n));
       const other = ORDER.filter(k => k !== key && (per[k][mu]||0) > 0)[0];
       out.push({prio:1, kind:'warn', ev:['schoenfeld17v','pelland'], title:`${MUSCLES[mu]}: ${fmt1(tot)} series/semana en tus rutinas (meta 10)`,
-        body:`Este es tu día de ${MUSCLES[mu].toLowerCase()}. ${room >= need ? `Añade <b>${need} series</b> aquí` : `Añade <b>${room} series</b> aquí${other ? ` y ${need - room} en el ${ROUTINES[other].code}` : ''}`}${rec.length ? `, por ejemplo de ${rec.map(n => `<b>${esc(meta(n).es)}</b>`).join(' o ')}` : ''}.`});
+        body:`Este es tu día de ${MUSCLES[mu].toLowerCase()}. ${room >= need ? `Añade <b>${pl(need, 'serie')}</b> aquí` : `Añade <b>${pl(room, 'serie')}</b> aquí${other ? ` y ${pl(need - room, 'serie')} en el ${ROUTINES[other].code}` : ''}`}${rec.length ? `, por ejemplo de ${rec.map(n => `<b>${esc(meta(n).es)}</b>`).join(' o ')}` : ''}.`});
     }
     // 3. Músculos que ya pasan de 20 a la semana: esta rutina puede recortar
     for (const mu in pv) if (pv[mu] > 20.5 && (vol[mu]||0) >= 4 && MUSCLES[mu]) {
@@ -1025,12 +1041,15 @@ function analyzeRoutine(items, key){
     out.push({prio:2, kind:'info', ev:['remmert25'], title:`Rutina larga: ≈${mins} min`,
       body:`${pairs.length ? `Haz en superserie <b>${pairs.slice(0,2).map(esc).join('</b> y <b>')}</b>.` : ''} También puedes hacer 2 series en el último ejercicio de cada músculo.`});
   }
-  // 6. Ejercicios casi iguales
+  // 6. Ejercicios casi iguales: mismo gesto (misma plantilla de movimiento) y mismo músculo principal.
+  //    Antes se comparaba la categoría ('tri', 'row'…), demasiado amplia: avisaba de polea alta + tras nuca, que son posiciones distintas (Maeo 2023).
+  const hidden = new Set(kv('raHide', []));
   for (let i = 0; i < items.length; i++) for (let j = i + 1; j < items.length; j++) {
-    const a = meta(items[i].n), b = meta(items[j].n);
-    if (a.pat === b.pat && a.mus[0] === b.mus[0] && !NOVOL.has(a.pat)) {
-      out.push({prio:3, kind:'info', ev:['pelland'], title:`${a.es} y ${b.es} son casi el mismo movimiento`,
-        body:'Variar el ángulo trabaja el músculo de forma algo distinta. Si buscas variedad, cambia uno por una variante en otra posición.'}); i = items.length; break; }
+    const a = meta(items[i].n), b = meta(items[j].n), ta = typeof gtplFor === 'function' ? gtplFor(items[i].n) : null;
+    const id = 'dup:' + [items[i].n, items[j].n].sort().join('|');
+    if (ta && ta === gtplFor(items[j].n) && a.mus[0] === b.mus[0] && !NOVOL.has(a.pat) && !hidden.has(id)) {
+      out.push({prio:3, kind:'info', ev:['pelland'], id, title:`${a.es} y ${b.es}: mismo gesto`,
+        body:'Trabajan el músculo en la misma posición. Si es a propósito (por ejemplo, uno lo haces con otra inclinación), ignóralo; si buscas más estímulo, cambia uno por una variante con el músculo en otra posición.'}); i = items.length; break; }
   }
   // 7. Orden: aislamiento antes que el básico del mismo músculo
   for (let i = 0; i < items.length; i++) { const a = meta(items[i].n); if (!ISOL.has(a.pat)) continue;
@@ -1046,7 +1065,7 @@ function renderRA(items, key, open){
   const chips = Object.entries(r.vol).filter(([mu,v]) => MUSCLES[mu] && v >= 1).sort((a,b) => b[1] - a[1]).map(([mu,v]) => `<span class="chip small${v > 11.5 ? ' on' : ''}">${MUSCLES[mu]} ${fmt1(v)}</span>`).join('');
   return `<details class="ra"${open ? ' open' : ''}><summary><span>Análisis de esta rutina</span><span class="ra-n${n ? '' : ' ok'}">${n ? n + (n === 1 ? ' aviso' : ' avisos') : 'Bien'}</span></summary><div class="ra-b">
     <div class="chip-row">${chips}</div><p class="faint" style="font-size:12px;margin:0">Series por músculo en esta sesión (directas + ½ de las de apoyo, como en los estudios) · ≈${r.mins} min</p>
-    ${r.tips.map(t => `<article class="tipc ${t.kind}"><div class="tipc-h"><span class="dotk"></span><b>${esc(t.title)}</b></div><div class="tipc-b">${t.body}</div><div class="row" style="gap:6px">${t.ev.map(evChip).join('')}</div></article>`).join('')}
+    ${r.tips.map(t => `<article class="tipc ${t.kind}"><div class="tipc-h"><span class="dotk"></span><b>${esc(t.title)}</b></div><div class="tipc-b">${t.body}</div><div class="row" style="gap:6px">${t.ev.map(evChip).join('')}${t.id ? `<button class="btn small ghost" data-rahide="${esc(t.id)}">No volver a avisar</button>` : ''}</div></article>`).join('')}
   </div></details>`;
 }
 
@@ -1060,6 +1079,7 @@ function sheetGuide(n, back){
     <div id="gAnim"></div>
     <div class="chip-row" style="margin:10px 0">${m.mus.map((x,i) => `<span class="chip small ${i === 0 ? 'on' : ''}">${MUSCLES[x] || x}${i === 0 ? ' · principal' : ''}</span>`).join('')}${m.knee ? '<span class="chip small">Rodilla: semáforo</span>' : ''}</div>
     ${g.cue ? `<p class="g-cue">${esc(g.cue)}</p>` : ''}
+    ${typeof LADDER_OF !== 'undefined' && LADDER_OF[n] ? (L => `<h4 class="g-h">Escalera · ${esc(L.lab)} (paso ${L.i + 1} de ${L.n})</h4><ol class="g-steps lad">${LADDERS[L.key].steps.map((x, k) => `<li class="${k === L.i ? 'on' : ''}">${k === L.i ? `<b>${esc(meta(x).es)}</b> · estás aquí` : `<button class="ex-name" data-guide="${esc(x)}">${esc(meta(x).es)}</button>`}</li>`).join('')}</ol><p class="faint" style="font-size:12px;margin:0">Pasa al siguiente paso cuando hagas 2 series del máximo con buena técnica. Con mancuernas se empieza con ${LADDER_START_KG} kg.</p>`)(LADDER_OF[n]) : ''}
     <h4 class="g-h">Cómo se hace</h4><ol class="g-steps">${g.how.map(x => `<li>${esc(x)}</li>`).join('')}</ol>
     <h4 class="g-h">Errores típicos</h4><ul class="g-err">${g.err.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
     ${tip ? `<button class="ev-line" data-ev="${tip.ev}" style="margin-top:8px">📚 ${esc(tip.txt)} <span class="faint">· ${esc(EV[tip.ev].cita.split(' ')[0].replace(',',''))} ${EV[tip.ev].year}</span></button>` : ''}
@@ -1071,14 +1091,14 @@ function sheetGuide(n, back){
 /* ---------- selector de ejercicios con el muñeco ---------- */
 const PK = {mode:'add', i:null, mus:null, q:'', all:false};
 function openPicker(mode, i){
-  Object.assign(PK, {mode, i, mus:null, q:'', all: mode === 'browse'});
+  Object.assign(PK, {mode, i, mus:null, q:'', all: mode === 'browse', lad:false});
   pickerShell();
 }
 function pickerShell(){
   const title = PK.mode === 'add' ? 'Agregar ejercicio' : PK.mode === 'replace' ? 'Reemplazar ejercicio' : `Biblioteca · ${Object.keys(EX).length} ejercicios`;
   openSheet(`<div class="pk-head"><h3 class="sheet-t" style="margin:0">${title}</h3><div class="row" style="gap:6px"><button class="btn small" data-cxnew>+ Crear</button><button class="btn small ghost" data-sheetclose>Cerrar</button></div></div>
     <input class="field" id="pkQ" placeholder="Buscar ejercicio" autocomplete="off" value="${esc(PK.q)}">
-    <div class="row" style="gap:6px;margin-top:8px"><button class="chip small" data-pkeq="gym">Material: ${esc(currentGym().name)}</button><button class="chip small" data-pkeq="all">Todo</button></div>
+    <div class="row" style="gap:6px;margin-top:8px"><button class="chip small" data-pkeq="gym">Material: ${esc(currentGym().name)}</button><button class="chip small" data-pkeq="all">Todo</button><button class="chip small" data-pklad>🪜 Escaleras</button></div>
     <div id="pkMap" class="bodymap pk-map"></div>
     <p class="faint" id="pkHint" style="font-size:12px;margin:0 0 6px;text-align:center">Toca un músculo para filtrar</p>
     <div id="pkList" class="sheet-list"></div>`);
@@ -1088,7 +1108,8 @@ function drawPicker(){
   const cls = k => 'm ' + (PK.mus === k ? 'pk-on' : 'pk-off');
   $('#pkMap').innerHTML = `<figure>${bodySvg('front', cls, k => MUSCLES[k])}</figure><figure>${bodySvg('back', cls, k => MUSCLES[k])}</figure>`;
   $('#pkHint').textContent = PK.mus ? `${MUSCLES[PK.mus]} · toca otra vez para quitar el filtro` : 'Toca un músculo para filtrar';
-  document.querySelectorAll('[data-pkeq]').forEach(b => b.classList.toggle('on', (b.dataset.pkeq === 'all') === PK.all));
+  document.querySelectorAll('[data-pkeq]').forEach(b => b.classList.toggle('on', !PK.lad && (b.dataset.pkeq === 'all') === PK.all));
+  document.querySelectorAll('[data-pklad]').forEach(b => b.classList.toggle('on', !!PK.lad));
   drawPickerList();
 }
 function drawPickerList(){
@@ -1100,9 +1121,10 @@ function drawPickerList(){
     && (PK.all || hasEq(n, eq))
     && (!PK.mus || meta(n).mus.includes(PK.mus))
     && (!q || meta(n).es.toLowerCase().includes(q) || n.toLowerCase().includes(q)));
-  names.sort((a,b) => history(b).length - history(a).length || meta(a).es.localeCompare(meta(b).es));
+  if (PK.lad) { names.length = 0; for (const L of Object.values(LADDERS)) for (const n of L.steps) if (!inSession.has(n) && !exc.has(n) && (!q || meta(n).es.toLowerCase().includes(q))) names.push(n); }
+  else names.sort((a,b) => history(b).length - history(a).length || meta(a).es.localeCompare(meta(b).es));
   $('#pkList').innerHTML = names.length ? names.map(n => { const h = history(n).length, m = meta(n);
-    return `<div class="pk-row"><button class="sheet-item pk-item" data-pkpick="${esc(n)}"><span><b>${esc(m.es)}</b><small>${m.mus.map(x => MUSCLES[x]).join(' · ')}${custom[n] ? ' · propio' : ''}${hasEq(n, eq) ? '' : ' · no está en tu gimnasio'}</small></span><span class="faint" style="font-size:12px;white-space:nowrap">${h ? h + ' sesiones' : 'nuevo'}</span></button><button class="pk-info" data-guide="${esc(n)}" aria-label="Cómo se hace ${esc(m.es)}">▶︎</button></div>`; }).join('')
+    return `<div class="pk-row"><button class="sheet-item pk-item" data-pkpick="${esc(n)}"><span><b>${esc(m.es)}</b><small>${PK.lad && LADDER_OF[n] ? `${esc(LADDER_OF[n].lab)} · paso ${LADDER_OF[n].i + 1}/${LADDER_OF[n].n} · ` : ''}${m.mus.map(x => MUSCLES[x]).join(' · ')}${custom[n] ? ' · propio' : ''}${hasEq(n, eq) ? '' : ' · no está en tu gimnasio'}</small></span><span class="faint" style="font-size:12px;white-space:nowrap">${h ? h + ' sesiones' : 'nuevo'}</span></button><button class="pk-info" data-guide="${esc(n)}" aria-label="Cómo se hace ${esc(m.es)}">▶︎</button></div>`; }).join('')
     : `<p class="muted" style="text-align:center;margin:12px 0">No hay ejercicios con este filtro${PK.all ? '' : ' y el material de este gimnasio. Prueba con “Todo”'}.</p>`;
 }
 function pickExercise(n){
@@ -1245,7 +1267,7 @@ function renderProgress(){
     <section class="card chart-card">
       <header><h2>Por ejercicio</h2></header>
       <label class="eyebrow" for="exPick" style="margin-bottom:-4px">Ejercicio</label>
-      <select class="big" id="exPick">${freq.map(([n,c]) => `<option value="${esc(n)}" ${n===S.exSel?'selected':''}>${esc(meta(n).es)} · ${c} sesiones</option>`).join('')}</select>
+      <select class="big" id="exPick">${freq.map(([n,c]) => `<option value="${esc(n)}" ${n===S.exSel?'selected':''}>${esc(meta(n).es)} · ${pl(c, 'sesión', 'sesiones')}</option>`).join('')}</select>
       <div id="exDetail"></div>
     </section>
     <section class="card chart-card">
@@ -1495,7 +1517,7 @@ function renderBody(){
         <label>Postura<select class="field" id="phPose">${poses.map(p => `<option ${p===S.cmp.pose?'selected':''}>${p}</option>`).join('')}</select></label>
         <label>&nbsp;<span class="btn primary file-btn">Añadir foto<input type="file" id="phIn" accept="image/*" aria-label="Añadir foto de progreso"></span></label>
       </div>
-      <p class="faint" style="font-size:12px;margin:0">Misma luz, misma distancia y misma hora. Una tanda cada 2-4 semanas basta. Las fotos solo se guardan en este iPhone.</p>
+      <p class="faint" style="font-size:12px;margin:0">Misma luz, misma distancia y misma hora. Una tanda cada 2-4 semanas basta. Las fotos solo se guardan en este dispositivo.</p>
       ${cmpList.length >= 2 ? `
         <div class="eyebrow">Comparar · ${esc(S.cmp.pose)}</div>
         <div class="form">
@@ -1570,7 +1592,7 @@ function renderMore(){
     </section>
     <section class="card pad import">
       <h2>Copia de seguridad</h2>
-      <p class="muted" style="margin:0;font-size:14px">Tus datos viven solo en este iPhone. Si borras la app o cambias de móvil, se pierden sin copia. Guárdala en iCloud Drive (Archivos) cada dos semanas, a la vez que importas Hevy.</p>
+      <p class="muted" style="margin:0;font-size:14px">Tus datos viven solo en este dispositivo. Si borras la app o cambias de móvil, se pierden sin copia. Guárdala en iCloud Drive (Archivos) cada dos semanas, a la vez que importas Hevy.</p>
       <div class="row"><button class="btn primary" id="bkOut">Exportar copia</button><button class="btn" id="bkOutLite">Sin fotos</button><span class="btn file-btn">Restaurar copia<input type="file" id="bkIn" accept=".json,application/json" aria-label="Restaurar copia de seguridad"></span></div>
       <div id="bkMsg" class="muted" style="font-size:13px">${backup ? 'Última copia: ' + ago(new Date(backup)) + '.' : 'Aún no has hecho ninguna copia.'}</div>
     </section>
@@ -1633,8 +1655,8 @@ async function importCsv(file){
     }
     await setKv('lastHevy', Date.now());
     rebuild();
-    msg.textContent = `Listo: ${sessions.size} sesiones de Hevy y ${cardioRows.size} de cardio importadas.`;
-    toast(`${sessions.size} sesiones importadas`); updateStatus();
+    msg.textContent = `Listo: ${pl(sessions.size, 'sesión', 'sesiones')} de Hevy y ${cardioRows.size} de cardio importadas.`;
+    toast(`${pl(sessions.size, 'sesión importada', 'sesiones importadas')}`); updateStatus();
   } catch(e) { msg.textContent = (e && e.message) || 'No se pudo importar el archivo.'; }
 }
 
@@ -1677,7 +1699,7 @@ async function prepareRestore(file){
     msg.textContent = 'Copia comprobada. Confirma para restaurar.';
     openSheet(`<h3 class="sheet-t">¿Restaurar esta copia?</h3>
       <p style="margin:0 0 8px">Copia del ${d.exported ? fmtDate(parseIso(d.exported),{day:'numeric', month:'long', year:'numeric'}) : '(fecha desconocida)'}: <b>${appN}</b> sesiones de la app, <b>${hevyN}</b> de Hevy, <b>${body.length}</b> días de cuerpo y ${withPhotos ? `<b>${blobs.length}</b> fotos` : '<b>sin fotos</b> (se conservan las que tienes)'}.</p>
-      <p class="muted" style="margin:0 0 12px;font-size:14px">Sustituye lo que hay ahora en este iPhone (${Object.values(S.app).filter(x => x.status === 'done').length} sesiones de la app${withPhotos ? `, ${S.photos.length} fotos` : ''}). Si dudas, cancela y exporta antes una copia de lo actual.</p>
+      <p class="muted" style="margin:0 0 12px;font-size:14px">Sustituye lo que hay ahora en este dispositivo (${Object.values(S.app).filter(x => x.status === 'done').length} sesiones de la app${withPhotos ? `, ${S.photos.length} fotos` : ''}). Si dudas, cancela y exporta antes una copia de lo actual.</p>
       <div class="row"><button class="btn danger" id="restoreYes">Sí, restaurar</button><button class="btn ghost" data-sheetclose>Cancelar</button></div>`);
   } catch(e) { PENDING_RESTORE = null; msg.textContent = (e && e.message) || 'No se pudo leer la copia. No se ha tocado nada.'; }
 }
@@ -1705,7 +1727,7 @@ async function applyRestore(){
    RENDER + EVENTOS
    ===================================================================== */
 const TITLES = {train:'Entrenar', prog:'Progreso', rec:'Recuperación', body:'Cuerpo', more:'Más'};
-function updateStatus(){ $('#sync').innerHTML = `<b>${S.all.length} sesiones</b><br>en este iPhone`; }
+function updateStatus(){ $('#sync').innerHTML = `<b>${pl(S.all.length, 'sesión', 'sesiones')}</b><br>en este dispositivo`; }
 function render(){
   $('#today').textContent = fmtDate(new Date(), {weekday:'long', day:'numeric', month:'long'});
   document.querySelectorAll('nav.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === S.tab));
@@ -1713,12 +1735,10 @@ function render(){
   updateStatus();
   const v = $('#view');
   if (!S.ready) { v.innerHTML = '<div class="card empty"><p>Abriendo tus datos…</p></div>'; return; }
-  const LV = !S.live && curProf().kind === 'lv';
-  if (S.tab === 'train') v.innerHTML = !S.live && S.wiz ? renderWizard() : !S.live && S.home && !S.lastDone ? renderHome() : LV ? renderLv()
+  if (S.tab === 'train') v.innerHTML = !S.live && S.wiz ? renderWizard() : !S.live && S.home && !S.lastDone ? renderHome()
     : `<div class="stack">${S.lastDone && !S.live ? renderSummary() : ''}${S.live ? renderLive() : renderPicker()}</div>`;
-  if (S.tab === 'prog' && LV) { v.innerHTML = renderLvProgress(); return; }
   if (S.tab === 'prog') { v.innerHTML = renderProgress(); weeksChart($('#chWeeks')); drawExDetail(); }
-  if (S.tab === 'rec') v.innerHTML = LV ? `<div class="card empty"><h2>Recuperación</h2><p>En el programa por niveles la carga la decide el semáforo de cada día, no el cálculo de recuperación muscular.</p></div>` : renderRecovery();
+  if (S.tab === 'rec') v.innerHTML = renderRecovery();
   if (S.tab === 'body') { if (curProf().person !== 'me') { v.innerHTML = `<div class="card empty"><h2>Cuerpo</h2><p>El peso, las medidas y las fotos son de Luis. Cambia al perfil de Luis para verlos.</p><button class="btn primary" data-home>Cambiar de perfil</button></div>`; return; } v.innerHTML = renderBody(); drawBodyCharts(); }
   if (S.tab === 'more') v.innerHTML = (typeof renderProfilesMore === 'function' ? renderProfilesMore() : '') + renderMore();
 }
@@ -1790,6 +1810,7 @@ document.addEventListener('click', async e => {
   if (t.closest('#reopen')) { const s = S.lastDone && S.app[S.lastDone.id];
     if (s) { s.status = 'live'; delete s.end; S.live = s; S.lastDone = null; await IDB.put('sessions', JSON.parse(JSON.stringify(s))); rebuild(); REC_CACHE = null; keepAwake(true); render(); toast('Entreno reabierto'); }
     return; }
+  const rah = t.closest('[data-rahide]'); if (rah) { await setKv('raHide', [...new Set(kv('raHide', []).concat(rah.dataset.rahide))]); render(); toast('No volveré a avisar de esto'); return; }
   const evb = t.closest('[data-ev]'); if (evb) return sheetEvidence(evb.dataset.ev);
   const evf = t.closest('[data-evf]'); if (evf) { S.evFilter = evf.dataset.evf; render(); return; }
   if (t.closest('[data-alltips]')) { S.showAllTips = !S.showAllTips; render(); return; }
@@ -1799,7 +1820,8 @@ document.addEventListener('click', async e => {
   if (t.closest('[data-guideback]')) return pickerShell();
   if (t.closest('[data-library]')) return openPicker('browse');
   const pkMus = t.closest('#pkMap [data-mus]'); if (pkMus) { PK.mus = PK.mus === pkMus.dataset.mus ? null : pkMus.dataset.mus; drawPicker(); return; }
-  const pkEq = t.closest('[data-pkeq]'); if (pkEq) { PK.all = pkEq.dataset.pkeq === 'all'; drawPicker(); return; }
+  const pkEq = t.closest('[data-pkeq]'); if (pkEq) { PK.all = pkEq.dataset.pkeq === 'all'; PK.lad = false; drawPicker(); return; }
+  if (t.closest('[data-pklad]')) { PK.lad = !PK.lad; PK.all = true; PK.mus = null; drawPicker(); return; }
   const pkPick = t.closest('[data-pkpick]'); if (pkPick) return (PK.mode === 'browse' || !S.live) ? sheetGuide(pkPick.dataset.pkpick, 'browse') : pickExercise(pkPick.dataset.pkpick);
   /* Entreno en curso */
   if (!S.live) return;
@@ -1830,8 +1852,9 @@ document.addEventListener('click', async e => {
     if (!s.done) {
       const kgEl = row.querySelector('[data-f=kg]'), rpEl = row.querySelector('[data-f=reps]');
       if (!s.kg && toNum(kgEl.placeholder) != null) s.kg = kgEl.placeholder;
-      if (!toNum(s.reps) && /^\d+$/.test(rpEl.placeholder)) s.reps = rpEl.placeholder;
-      if (!toNum(s.reps)) { rpEl.focus(); toast(meta(S.live.ex[i].n).mins ? 'Escribe los minutos.' : 'Escribe las repeticiones de la serie.'); return; }
+      /* Las reps no se copian del texto gris (es el objetivo, no lo que hiciste); solo en las de calentamiento */
+      if (!toNum(s.reps) && s.t === 'w' && /^\d+$/.test(rpEl.placeholder)) s.reps = rpEl.placeholder;
+      if (!toNum(s.reps)) { rpEl.focus(); toast(meta(S.live.ex[i].n).mins ? 'Escribe los minutos que has hecho.' : meta(S.live.ex[i].n).time ? 'Escribe los segundos o usa la cuenta atrás.' : 'Escribe las reps que has hecho: el número gris es el objetivo.'); return; }
       if (needsKg(S.live.ex[i].n) && !(toNum(s.kg) > 0)) { s.kg = ''; kgEl.focus(); toast('Escribe los kilos: este ejercicio usa peso.'); return; }
       s.done = true; s.at = Date.now();
       const ex = S.live.ex[i];
@@ -1859,9 +1882,10 @@ document.addEventListener('click', async e => {
   const kset = t.closest('[data-kneeset]'); if (kset) { const [i,j,v] = kset.dataset.kneeset.split('-'); S.live.ex[+i].sets[+j].knee = v; scheduleSave(); closeSheet(true); if (v !== '' && +v >= 5) toast(`${painLab()} en rojo: para este ejercicio o cámbialo.`); return; }
   if (t.closest('#finish')) return sheetFinish();
   if (t.closest('#finishYes')) { closeSheet(); return finishSession(); }
+  if (t.closest('#liveMenu')) return openSheet(`<h3 class="sheet-t">Sesión en curso</h3><div class="sheet-list"><button class="sheet-item" data-act="order" data-i="0">↕︎ Ordenar ejercicios</button></div><div id="discardZone" style="margin-top:14px"><button class="btn danger wide" id="discard">Descartar sesión</button></div>`);
   if (t.closest('#discard')) { $('#discardZone').innerHTML = `<div class="confirm"><span>¿Borrar esta sesión sin guardarla?</span><button class="btn small danger" id="discardYes">Sí, borrar</button><button class="btn small ghost" id="discardNo">Cancelar</button></div>`; return; }
   if (t.closest('#discardNo')) { $('#discardZone').innerHTML = `<button class="btn danger wide" id="discard">Descartar sesión</button>`; return; }
-  if (t.closest('#discardYes')) { const id = S.live.id; S.live = null; delete S.app[id]; await IDB.del('sessions', id); stopRest(); keepAwake(false); render(); return; }
+  if (t.closest('#discardYes')) { closeSheet(); const id = S.live.id; S.live = null; delete S.app[id]; await IDB.del('sessions', id); stopRest(); keepAwake(false); render(); return; }
 });
 
 document.addEventListener('input', e => {

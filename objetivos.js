@@ -388,3 +388,42 @@ function pnScore(test, sex, v){
   for (let i = 0; i < arr.length; i++) if (t.lower ? v <= arr[i] + 1e-9 : v >= arr[i]) return 10 - i;
   return 0;
 }
+
+/* =====================================================================
+   ESCALERAS DE FUERZA (pensadas para personas mayores o que empiezan de cero)
+   Cada escalera va de lo más fácil a lo más difícil. Se pasa al siguiente paso cuando se hacen
+   2 series del máximo de repeticiones con buena técnica; los pasos con mancuernas empiezan con 2 kg
+   y suben poco a poco (Fragala 2019, NSCA: empezar ligero, 1 serie de 10-15, y progresar).
+   ===================================================================== */
+Object.assign(EX, {
+ 'Sit to Stand (Hands)':['Levantarse de la silla con ayuda de las manos','cu gl',5,10,1,60,'squat',[]],
+ 'Sit to Stand (Dumbbell)':['Levantarse de la silla con mancuerna','cu gl',8,12,1,75,'squat',['db']],
+ 'Hip Hinge Drill':['Bisagra de cadera sin peso (manos en los muslos)','fe gl',8,12,0,60,'hinge',[]],
+ 'Dumbbell Deadlift':['Peso muerto con mancuernas','fe gl cu',8,12,1,90,'hinge',['db']],
+ 'Wall Push Up':['Flexiones en la pared','pe tr',8,15,0,60,'press_h',[]],
+ 'Step Up (Bodyweight)':['Subir al escalón sin peso','cu gl',8,12,1,60,'squat',['box']]
+});
+Object.assign(GMAP, {'Sit to Stand (Hands)':'sit_stand', 'Sit to Stand (Dumbbell)':'sit_stand', 'Hip Hinge Drill':'hinge_db', 'Dumbbell Deadlift':'hinge_db', 'Wall Push Up':'pushup_inc', 'Step Up (Bodyweight)':'stepup'});
+Object.assign(GCUE, {
+ 'Sit to Stand (Hands)':'Silla firme contra la pared. Échate adelante, empuja con las manos en los muslos o en los reposabrazos y siéntate despacio, sin dejarte caer.',
+ 'Sit to Stand':'Brazos cruzados sobre el pecho. Sube rápido y baja en 2-3 s.',
+ 'Sit to Stand (Dumbbell)':'Mancuerna pegada al pecho, sujeta con las dos manos. Empieza con 2 kg.',
+ 'Hip Hinge Drill':'Manos en los muslos: deslízalas hasta las rodillas echando el culo atrás, con la espalda recta, y vuelve apretando glúteos. Es el gesto del peso muerto sin carga.',
+ 'Romanian Deadlift (Dumbbell)':'Rodillas casi estiradas; baja las mancuernas pegadas a las piernas hasta donde la espalda siga recta. Si empiezas, 2 kg por mano.',
+ 'Dumbbell Deadlift':'Mancuernas a los lados de los pies; dobla un poco más las rodillas que en el rumano, espalda recta, y levántate empujando el suelo.',
+ 'Wall Push Up':'Manos en la pared a la altura del pecho; cuanto más lejos los pies, más difícil.',
+ 'Step Up (Bodyweight)':'Escalón bajo (10-20 cm), con una mano en la pared o la barandilla si hace falta. Sube con la pierna de delante, sin impulsarte con la de atrás.'
+});
+const LADDERS = {
+ levantarse:{lab:'Levantarse', steps:['Sit to Stand (Hands)','Sit to Stand','Sit to Stand (Dumbbell)','Goblet Box Squat','Goblet Squat']},
+ bisagra:{lab:'Peso muerto', steps:['Hip Hinge Drill','Romanian Deadlift (Dumbbell)','Dumbbell Deadlift']},
+ empuje:{lab:'Empujar', steps:['Wall Push Up','Incline Push Up','Knee Push Up','Push Up']},
+ tiron:{lab:'Tirar', steps:['Band Row','Dumbbell Row']},
+ escalon:{lab:'Escalón', steps:['Step Up (Bodyweight)','Step Up (Dumbbell)']},
+ gemelo:{lab:'Gemelo', steps:['Calf Raise (Bodyweight)','Calf Raise (Dumbbell)']},
+ equilibrio:{lab:'Equilibrio', steps:['Tandem Stance','Single Leg Stand','Single Leg Stand (Eyes Closed)']}
+};
+/* Para cada ejercicio de una escalera: {key, lab, i (paso), n (total), prev, next} */
+const LADDER_OF = {};
+for (const [key, L] of Object.entries(LADDERS)) L.steps.forEach((n, i) => { LADDER_OF[n] = {key, lab:L.lab, i, n:L.steps.length, prev:L.steps[i-1] || null, next:L.steps[i+1] || null}; });
+const LADDER_START_KG = 2; // kg por mano (o la mancuerna al pecho) al empezar un paso con mancuernas
