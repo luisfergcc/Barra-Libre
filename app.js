@@ -186,24 +186,40 @@ function suggest(name){
   const drop = atW.length >= 2 ? atW[0].reps - minR : 0;
   const rirs = atW.map(x => x.rir).filter(x => x != null);
   const rirMin = rirs.length ? Math.min(...rirs) : null, rirAvg = rirs.length ? rirs.reduce((a,b) => a+b, 0) / rirs.length : null;
-  const dropTxt = drop >= 3 ? ` Perdiste ${drop} reps de la primera a la última serie: descansa al menos 2 min (Singer 2024).` : '';
-  if (atW.length >= 2 && minR >= m.hi && rirMin === 0) return {...base, tone:'hold', tag:'MANTÉN', kg:w, reps:`${m.hi}`, text:`Llegaste a ${m.hi} reps, pero al límite (0 en reserva). Repite <b>${fmtKg(w)} kg</b> y sube cuando las hagas dejando 1 en reserva.`};
-  const easy = atW.length >= 2 && rirAvg != null && rirAvg >= 3 && minR >= m.lo;
-  if ((atW.length >= 2 && minR >= m.hi) || easy) { const kg = Math.round((w + (easy && rirAvg >= 3 && minR >= m.hi && step <= 2.5 ? 2*step : step))*100)/100;
-    if (ready < 50) return {...base, tone:'hold', tag:'CARGADO', kg:w, reps:`${m.hi}`, text:`Te toca subir, pero tu ${MUSCLES[mainMus].toLowerCase()} sigue cargado (${ready} %). Hoy mantén <b>${fmtKg(w)} kg</b> y sube a ${fmtKg(kg)} kg la próxima vez.`};
-    return {...base, tone:'up', tag:'SUBE', kg, reps:`${m.lo}-${m.lo+2}`, text: minR >= m.hi ? `Hiciste ${m.hi}+ reps en todas las series${rirAvg != null ? ` (${fmt1(rirAvg)} en reserva)` : ''}. Hoy <b>${fmtKg(kg)} kg</b> × ${m.lo}-${m.lo+2}.` : `Te sobraban ${fmt1(rirAvg)} reps en reserva: el peso se te queda corto. Hoy <b>${fmtKg(kg)} kg</b>.`}; }
+  /* Doble progresión basada en estudios:
+     - Subir peso o subir reps hace crecer igual (Plotkin 2022, Chaves 2024): no hace falta llegar al máximo en TODAS las series.
+     - Cualquier rango exigente de ~6 a 30 reps hace crecer parecido (Lopez 2021), así que tras subir, las últimas series pueden bajar del rango.
+     - Lo que más pesa es que las series estén cerca del fallo (Robinson 2024), sin necesidad de llegar a él (Refalo 2023). */
+  const FLOOR = Math.max(6, m.lo - 3);
+  const top = atW[0].reps, lastR = atW[atW.length - 1].reps, total = atW.reduce((a,x) => a + x.reps, 0);
+  const prev = hist[1], prevAtW = prev ? prev.sets.filter(x => (x.kg||0) === w) : [];
+  const prevTop = prevAtW.length ? prevAtW[0].reps : null, prevLast = prevAtW.length ? prevAtW[prevAtW.length - 1].reps : null;
+  const repsTxt = atW.map(x => x.reps).join('+');
+  const dropTxt = drop >= 4 ? ` Pierdes ${drop} reps de la primera a la última serie: descansa 2-3 min y las recuperarás (Schoenfeld 2016, Singer 2024).` : '';
+  const up = (kg, why) => ready < 50
+    ? {...base, tone:'hold', tag:'CARGADO', kg:w, reps:`${m.hi}`, text:`Te toca subir, pero tu ${MUSCLES[mainMus].toLowerCase()} sigue cargado (${ready} %). Hoy mantén <b>${fmtKg(w)} kg</b> y sube a ${fmtKg(kg)} kg la próxima vez.`}
+    : {...base, tone:'up', tag:'SUBE', kg, reps:`${m.lo}-${m.hi}`, text:`${why} Hoy <b>${fmtKg(kg)} kg</b>: espera 1-2 reps menos en la primera serie; mientras ninguna baje de ${FLOOR}, el estímulo es el mismo.`};
+  const kgUp = Math.round((w + step)*100)/100;
+  // 1. Todas al máximo, pero al límite: consolidar una sesión
+  if (atW.length >= 2 && minR >= m.hi && rirMin === 0) return {...base, tone:'hold', tag:'MANTÉN', kg:w, reps:`${m.hi}`, text:`Llegaste a ${m.hi} reps en todas, pero al límite (0 en reserva). Repite <b>${fmtKg(w)} kg</b> y sube cuando lo hagas dejando 1 en reserva.`};
+  // 2. Todas al máximo
+  if (atW.length >= 2 && minR >= m.hi) return up(Math.round((w + (rirAvg != null && rirAvg >= 3 && step <= 2.5 ? 2*step : step))*100)/100, `Hiciste ${m.hi}+ reps en todas las series${rirAvg != null ? ` (${fmt1(rirAvg)} en reserva)` : ''}.`);
+  // 3. La primera serie llega al máximo dos sesiones seguidas y las demás no se hunden
+  if (atW.length >= 2 && top >= m.hi && prevTop != null && prevTop >= m.hi && lastR >= FLOOR) return up(kgUp, `Tu primera serie llegó a ${m.hi} dos sesiones seguidas (${repsTxt}).`);
+  // 4. Te sobraban reps
+  if (atW.length >= 2 && rirAvg != null && rirAvg >= 3 && minR >= m.lo) return up(kgUp, `Te sobraban ${fmt1(rirAvg)} reps en reserva: el peso se te queda corto.`);
+  // 5. Estancado
   const sp = hist.slice(0, 4);
   const steady = sp.length >= 4 && sp.every((h,i) => i === 0 || (sp[i-1].date - h.date) / 864e5 <= 21);
   if (steady && Math.max(sp[0].best.v, sp[1].best.v, sp[2].best.v) <= sp[3].best.v * 1.005) {
     const kg = roundTo(w*0.9, step), alt = altsFor(name, 1)[0];
     return {...base, tone:'down', tag:'ESTANCADO', kg:w, reps:`${m.lo}-${m.hi}`, text:`3 sesiones sin mejorar tu mejor serie. Elige una: descansa 2-3 min entre series, baja a <b>${fmtKg(kg)} kg</b> y vuelve a subir en 2-3 semanas${alt ? `, o cámbialo 4-6 semanas por <b>${esc(meta(alt).es)}</b>` : ''}.`}; }
-  if (minR >= m.lo) { const tgt = Math.min(m.hi, minR + 1);
-    return {...base, tone:'hold', tag:'MANTÉN', kg:w, reps:`${tgt}-${m.hi}`, text:`Mismo peso, <b>${fmtKg(w)} kg</b>. Busca al menos <b>${tgt} reps</b> en cada serie; al llegar a ${m.hi} en todas, sube.${dropTxt}`}; }
-  const prev = hist[1];
-  const prevLow = prev && Math.min(99, ...prev.sets.filter(x => (x.kg||0) === w).map(x => x.reps)) < m.lo;
-  if (prevLow) { const kg = roundTo(w - step, step);
-    return {...base, tone:'down', tag:'BAJA', kg, reps:`${m.lo}-${m.hi}`, text:`Dos sesiones por debajo de ${m.lo} reps con ${fmtKg(w)} kg. Baja a <b>${fmtKg(kg)} kg</b> y vuelve a construir. Descansa 2-3 min entre series.`}; }
-  return {...base, tone:'hold', tag:'MANTÉN', kg:w, reps:`${m.lo}-${m.hi}`, text:`La última serie bajó de ${m.lo}. Repite <b>${fmtKg(w)} kg</b> y descansa más entre series (2-3 min).`};
+  // 6. Demasiado pesado dos sesiones seguidas
+  if ((top < m.lo && prevTop != null && prevTop < m.lo) || (lastR < FLOOR && prevLast != null && prevLast < FLOOR)) { const kg = roundTo(w - step, step);
+    return {...base, tone:'down', tag:'BAJA', kg, reps:`${m.lo}-${m.hi}`, text:`Dos sesiones con ${fmtKg(w)} kg ${top < m.lo ? `sin llegar a ${m.lo} en la primera serie` : `con la última serie por debajo de ${FLOOR}`}. Baja a <b>${fmtKg(kg)} kg</b> y vuelve a construir.${dropTxt}`}; }
+  // 7. Mantén el peso y suma repeticiones (progresar en reps hace crecer igual que en peso)
+  const tgt = Math.min(m.hi, minR + 1);
+  return {...base, tone:'hold', tag:'MANTÉN', kg:w, reps:`${tgt}-${m.hi}`, text:`Mismo peso, <b>${fmtKg(w)} kg</b>. La última vez ${repsTxt} = ${total} reps: hoy busca <b>${total + 1}-${total + 2}</b>. ${top >= m.hi ? `Si la primera serie vuelve a llegar a ${m.hi}, la próxima vez subes.` : `Cuando la primera llegue a ${m.hi} dos sesiones seguidas, subes.`}${dropTxt}`};
 }
 
 /* =====================================================================
