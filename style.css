@@ -374,3 +374,26 @@ details.ra .ra-b{padding:0 12px 12px;display:flex;flex-direction:column;gap:8px}
 .ra-n.ok{background:var(--good-soft);color:var(--good)}
 .pk-head .row{flex-wrap:nowrap}
 .pk-head .sheet-t{text-align:left;flex:1;min-width:0}
+
+/* ---------- perfiles, inicio y cuestionario (1.5.0) ---------- */
+.profbar{display:flex;margin-bottom:-4px}
+.profbar .chip{height:auto;min-height:36px;padding:6px 14px;color:var(--fg);font-weight:500;text-align:left}
+.prof-card{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px;min-height:56px}
+.prof-card.on{border-color:var(--accent);background:var(--accent-wash)}
+.prof-card .pc-ic{font-size:24px;line-height:1;width:32px;text-align:center;flex:none}
+.prof-card .pc-t{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.prof-card small{color:var(--muted);font-size:13px}
+.goal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.goal-b{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;border:1px solid var(--line);background:var(--raised);border-radius:12px;padding:12px;min-height:84px}
+.goal-b .gb-ic{font-size:22px;line-height:1.1}
+.goal-b small{color:var(--muted);font-size:12px;line-height:1.3}
+.goal-b:active,.prof-card:active{transform:scale(.98)}
+.wiz .wz-f{display:flex;flex-direction:column;gap:8px}
+.wiz .chip-row{display:flex;flex-wrap:wrap;gap:6px}
+.wz-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:14px}
+.wz-list li{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.wz-list .num{white-space:nowrap}
+.test-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.test-form label{display:flex;flex-direction:column;gap:4px;min-width:0}
+.test-form .field{width:100%;min-width:0}
+@media (max-width:380px){.test-form{grid-template-columns:1fr 1fr}}
