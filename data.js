@@ -1,5 +1,5 @@
 /* =====================================================================
-   BARRA LIBRE · datos fijos (plan v1.1)
+   BARRA LIBRE · datos fijos (plan v1.2)
    Si cambia el plan, se actualiza aquí: rutinas, calentamientos y ejercicios.
    ===================================================================== */
 
@@ -101,8 +101,19 @@ const EX = {
  'Reverse Lunge (Dumbbell)':['Zancada atrás con mancuernas','cu gl',8,12,1,90,'squat',['db']],
  'Lying Leg Curl (Machine)':['Femoral tumbado','fe',10,12,0,90,'leg_curl',['lcurl']],
  'Seated Calf Raise':['Gemelo sentado (sóleo)','ge',12,20,0,60,'calf',['calf']],
- 'Incline Curl (Dumbbell)':['Curl inclinado con mancuernas','bi',10,12,0,75,'curl',['db','bench']]
+ 'Incline Curl (Dumbbell)':['Curl inclinado con mancuernas','bi',10,12,0,75,'curl',['db','bench']],
+/* Por tiempo: el 9.º dato 't' indica que las "reps" son segundos (rango en segundos) */
+ 'Wall Sit':['Sentadilla isométrica en pared','cu',30,60,1,60,'iso',[],'t'],
+ 'Spanish Squat':['Sentadilla española con banda (isométrica)','cu',30,45,1,60,'iso',['band'],'t'],
+ 'Plank':['Plancha','co',30,60,0,60,'core',[],'t'],
+ 'Side Plank':['Plancha lateral','co',20,45,0,45,'core',[],'t'],
+ 'Chin Up':['Dominadas supinas','es bi',5,10,0,150,'pull_v',['pull']]
 };
+/* Ejercicios en los que tu peso corporal cuenta como carga (Strong hace lo mismo).
+   1 = todo tu peso; 0,65 = flexiones (aprox.); -1 = asistida (tu peso menos la ayuda). Los kg que apuntas son lastre. */
+const BW_LOAD = {'Pull Up':1, 'Chin Up':1, 'Chest Dip':1, 'Push Up':0.65};
+/* Discos por defecto para la calculadora (kg, por lado) */
+const PLATES = [25, 20, 15, 10, 5, 2.5, 1.25];
 const SKIP = new Set(['Walking','Stretching']);
 
 /* Rutinas del plan (nombres de Hevy, en orden) */
@@ -179,7 +190,11 @@ const EVIDENCE = [
  {id:'blagrove18', tema:'correr', cita:'Blagrove, Howatson y Hayes', rev:'Sports Medicine', year:2018, tipo:'Revisión sistemática',
   hallazgo:'Añadir fuerza al entrenamiento de carrera mejoró la economía de carrera en corredores de fondo.', regla:'Fuerza de pierna 1-2 veces por semana te hace correr con menos gasto.'},
  {id:'alentorn17', tema:'correr', cita:'Alentorn-Geli y col.', rev:'Journal of Orthopaedic & Sports Physical Therapy', year:2017, tipo:'Metaanálisis',
-  hallazgo:'Los corredores recreativos tenían menos artrosis de cadera y rodilla (3,5 %) que los sedentarios (10,2 %) y los corredores de élite (13,3 %).', regla:'Correr de forma recreativa no es malo para las rodillas.'}
+  hallazgo:'Los corredores recreativos tenían menos artrosis de cadera y rodilla (3,5 %) que los sedentarios (10,2 %) y los corredores de élite (13,3 %).', regla:'Correr de forma recreativa no es malo para las rodillas.'},
+ {id:'coleman24', tema:'fuerza', cita:'Coleman y col.', rev:'PeerJ', year:2024, tipo:'Ensayo aleatorizado (39 entrenados)',
+  hallazgo:'En 9 semanas de entrenamiento, parar una semana entera a mitad no cambió el crecimiento de la pierna, pero la fuerza (sentadilla y extensión de rodilla) subió algo menos que en quienes siguieron entrenando.', regla:'Si descargas, no pares: baja las series y mantén el peso.'},
+ {id:'bell23', tema:'fuerza', cita:'Bell y col.', rev:'Sports Medicine – Open', year:2023, tipo:'Consenso Delphi de entrenadores',
+  hallazgo:'Entrenadores de fuerza y físico definen la descarga como un periodo de menos estrés de entrenamiento para reducir la fatiga física y mental y preparar el siguiente bloque.', regla:'Úsala cuando se acumulan fatiga o estancamientos, no como un fin en sí misma.'}
 ];
 const EV = Object.fromEntries(EVIDENCE.map(e => [e.id, e]));
 const TEMAS = {hip:'Hipertrofia', fuerza:'Fuerza', rodilla:'Rodilla y cadera', movilidad:'Movilidad', correr:'Correr'};
