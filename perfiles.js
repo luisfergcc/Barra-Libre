@@ -11,16 +11,18 @@ const EXTRA_GOALS = ['mayores','rehab','opos'];
 const goalShown = (k, keep) => kv('extraGoals', false) || !EXTRA_GOALS.includes(k) || k === keep;
 
 /* Los perfiles 'lv' (programa por niveles, quitado en 1.7.0) se ignoran: sus sesiones siguen en la copia, pero no se muestran */
-function profiles(){ return [DEF_PROFILE].concat((kv('profiles', []) || []).filter(p => p && p.id !== 'me' && p.kind !== 'lv' && p.prog)); }
-const curProf = () => profiles().find(p => p.id === kv('profile', 'me')) || DEF_PROFILE;
+/* En el móvil de otra persona (detectado al importar su Hevy) el plan D1-D4 de Luis se oculta */
+function profiles(){ const own = (kv('profiles', []) || []).filter(p => p && p.id !== 'me' && p.kind !== 'lv' && p.prog);
+  return (kv('hideBuiltin', false) && own.length ? [] : [DEF_PROFILE]).concat(own); }
+const curProf = () => profiles().find(p => p.id === kv('profile', 'me')) || profiles()[0];
 const personOf = pid => { const p = profiles().find(x => x.id === pid); return p ? p.person : pid; };
 /* Claves que van por persona (excluidos, gimnasio elegido, descarga). Las de Luis siguen igual que antes. */
 const profKey = k => curProf().person === 'me' ? k : `${k}:${curProf().person}`;
 const profStrength = () => { const p = curProf(); return !!p.builtin || STRENGTH_GOALS.includes(p.q.main) || p.q.sec === 'musculo'; };
 function profKneeOn(){ const p = curProf(), q = p.q || {};
-  return p.person === 'me' || (q.issues || []).includes('rodilla') || (q.main === 'rehab' && q.zone === 'rodilla') || (q.sec === 'rehab' && q.zone2 === 'rodilla'); }
+  return !!p.builtin || (q.issues || []).includes('rodilla') || (q.main === 'rehab' && q.zone === 'rodilla') || (q.sec === 'rehab' && q.zone2 === 'rodilla'); }
 function profPainLab(){ const p = curProf(), q = p.q || {};
-  if (p.person === 'me') return 'Rodilla';
+  if (p.builtin) return 'Rodilla';
   const z = [q.main === 'rehab' && q.zone, q.sec === 'rehab' && q.zone2].filter(Boolean);
   return z.length && z.every(x => x === 'rodilla') ? 'Rodilla' : z.length ? 'Dolor' : (q.issues || []).includes('rodilla') ? 'Rodilla' : 'Dolor'; }
 const goalLab = q => { const g = GOALS[q.main]; return g ? `${g.ic} ${g.lab}` : ''; };
@@ -43,7 +45,7 @@ async function switchProfile(id){
 /* ---------- barra de perfil en Entrenar ---------- */
 function profBar(){
   const p = curProf();
-  return `<div class="profbar"><button class="chip" data-home aria-label="Cambiar de perfil u objetivo">👤 <b>${esc(p.name)}</b> · ${p.builtin ? `Plan ${PLAN_VERSION} (D1-D4)` : esc(goalLab(p.q))} <span class="faint">▾</span></button></div>`;
+  return `<div class="profbar"><button class="chip" data-home aria-label="Cambiar de perfil u objetivo">👤 <b>${esc(p.name)}</b> · ${p.builtin ? `Plan ${PLAN_VERSION} (D1-D4)` : p.kind === 'hevy' ? '📥 Rutinas de Hevy' : esc(goalLab(p.q))} <span class="faint">▾</span></button></div>`;
 }
 
 /* ---------- pantalla de inicio: ¿Qué entrenamos? ---------- */
@@ -54,7 +56,7 @@ function renderHome(){
     <section class="card pad stack" style="gap:10px">
       <h2>Seguir con</h2>
       <div class="sheet-list">${list.map(p => { const n = p.builtin ? 4 : p.prog.order.length;
-        return `<button class="prof-card ${p.id === cur.id ? 'on' : ''}" data-prof="${esc(p.id)}"><span class="pc-ic">${p.builtin ? '🏋️' : (GOALS[p.q.main] || {}).ic || '•'}</span><span class="pc-t"><b>${esc(p.name)}${p.builtin ? ' · tu plan' : ''}</b><small>${p.builtin ? `Hipertrofia + cuidar la rodilla · D1-D4 · plan ${PLAN_VERSION}` : `${esc(goalLab(p.q).replace(/^\S+ /, ''))}${secLab(p.q) ? ' + ' + esc(secLab(p.q)) : ''} · ${p.q.days} días · ${n} rutinas · ~${p.q.minutes} min`}</small></span><span class="faint">›</span></button>`; }).join('')}</div>
+        return `<button class="prof-card ${p.id === cur.id ? 'on' : ''}" data-prof="${esc(p.id)}"><span class="pc-ic">${p.builtin ? '🏋️' : p.kind === 'hevy' ? '📥' : (GOALS[p.q.main] || {}).ic || '•'}</span><span class="pc-t"><b>${esc(p.name)}${p.builtin ? ' · tu plan' : ''}</b><small>${p.builtin ? `Hipertrofia + cuidar la rodilla · D1-D4 · plan ${PLAN_VERSION}` : p.kind === 'hevy' ? `Rehechas desde tus entrenos de Hevy · ${n} rutinas: ${esc(p.prog.order.map(k => p.prog.routines[k].title).join(', '))}` : `${esc(goalLab(p.q).replace(/^\S+ /, ''))}${secLab(p.q) ? ' + ' + esc(secLab(p.q)) : ''} · ${p.q.days} días · ${n} rutinas · ~${p.q.minutes} min`}</small></span><span class="faint">›</span></button>`; }).join('')}</div>
     </section>
     <section class="card pad stack" style="gap:10px">
       <h2>Nuevo objetivo</h2>
@@ -71,7 +73,7 @@ const MAT = {bw:{lab:'Casa sin material', eq:[]}, band:{lab:'Casa con bandas', e
 function newWizard(main, base){
   const me = !base && curProf().person === 'me';
   const q = base ? JSON.parse(JSON.stringify(base.q)) : {name:'', person: me ? 'me' : 'new', age:'', main: main || 'hip', sec:'none', zone:'rodilla', zone2:'rodilla', muscle:'fe', opos:'pn', sex:'h',
-    days:3, minutes:60, gym: kv(pkey('gym'), kv('gym', 'g-main')), level:'int', issues: me ? ['rodilla'] : []};
+    days:3, minutes:60, gym: kv(pkey('gym'), kv('gym', 'g-main')), level:'int', issues: me && !kv('hideBuiltin', false) ? ['rodilla'] : []};
   if (main && base) q.main = main;
   S.wiz = {step:'form', q, editId: base ? base.id : null, person: base ? base.person : null}; S.home = false; render(); window.scrollTo({top:0});
 }
@@ -158,9 +160,10 @@ function renderProfilesMore(){
   return `<div class="stack" style="margin-bottom:var(--gap, 14px)"><section class="card pad stack" style="gap:10px">
     <header class="row" style="justify-content:space-between"><h2>Perfiles y objetivos</h2><button class="btn small" data-home>+ Nuevo</button></header>
     <p class="muted" style="margin:0;font-size:14px">Cada perfil tiene su rutina y su historial. Los objetivos que crees "para mí" comparten tu historial con el plan D1-D4.</p>
-    <div class="sheet-list">${list.map(p => `<div class="sheet-item sess-row"><span><b>${esc(p.name)}${p.id === cur.id ? ' · activo' : ''}</b><small>${p.builtin ? `Plan ${PLAN_VERSION} · D1-D4` : `${esc(goalLab(p.q))} · ${p.q.days} días · creado ${esc(p.created || '')}`}</small></span>
-      <span class="row" style="gap:6px">${p.id === cur.id ? '' : `<button class="btn small" data-prof="${esc(p.id)}">Usar</button>`}${p.builtin ? '' : `<button class="btn small ghost" data-profredo="${esc(p.id)}">Rehacer</button><button class="btn small ghost" data-profdel="${esc(p.id)}" aria-label="Borrar ${esc(p.name)}">✕</button>`}</span></div>`).join('')}</div>
+    <div class="sheet-list">${list.map(p => `<div class="sheet-item sess-row"><span><b>${esc(p.name)}${p.id === cur.id ? ' · activo' : ''}</b><small>${p.builtin ? `Plan ${PLAN_VERSION} · D1-D4` : p.kind === 'hevy' ? `Rutinas de Hevy · ${p.prog.order.length} rutinas · actualizadas ${esc(p.prog.created || '')}` : `${esc(goalLab(p.q))} · ${p.q.days} días · creado ${esc(p.created || '')}`}</small></span>
+      <span class="row" style="gap:6px">${p.id === cur.id ? '' : `<button class="btn small" data-prof="${esc(p.id)}">Usar</button>`}${p.builtin ? '' : `<button class="btn small ghost" ${p.kind === 'hevy' ? 'data-hevyredo' : `data-profredo="${esc(p.id)}"`}>Rehacer</button><button class="btn small ghost" data-profdel="${esc(p.id)}" aria-label="Borrar ${esc(p.name)}">✕</button>`}</span></div>`).join('')}</div>
     <div id="profDelZone"></div>
+    ${kv('hideBuiltin', false) ? `<label class="row muted" style="gap:8px;font-size:14px"><input type="checkbox" data-showbuiltin> Mostrar el plan D1-D4 de ejemplo</label>` : ''}
     <label class="row muted" style="gap:8px;font-size:14px"><input type="checkbox" data-extragoals ${kv('extraGoals', false) ? 'checked' : ''}> Mostrar objetivos para otras personas (mayores, rehabilitación y oposiciones)</label>
     <label class="row muted" style="gap:8px;font-size:14px"><input type="checkbox" data-askstart ${kv('askStart', false) ? 'checked' : ''}> Preguntar qué entrenamos al abrir la app</label>
   </section></div>`;
@@ -347,7 +350,7 @@ document.addEventListener('click', async e => {
   if (pdy) { const id = pdy.dataset.profdelyes; await setKv('profiles', (kv('profiles', []) || []).filter(p => p.id !== id)); if (kv('profile', 'me') === id) { await setKv('profile', 'me'); applyProfile(); rebuild(); } render(); toast('Perfil borrado'); return; }
   const wz = t.closest('[data-wz]'); if (wz && S.wiz) { const [k, v] = wz.dataset.wz.split(':'); S.wiz.q[k] = /^\d+$/.test(v) && ['days','minutes'].includes(k) ? +v : v;
     if (k === 'main' && S.wiz.q.sec === v) S.wiz.q.sec = 'none';
-    if (k === 'person') { const is = S.wiz.q.issues || []; S.wiz.q.issues = v === 'me' ? [...new Set(is.concat('rodilla'))] : is.filter(x => x !== 'rodilla'); } /* las rodillas de Luis van marcadas por defecto */
+    if (k === 'person') { const is = S.wiz.q.issues || []; S.wiz.q.issues = v === 'me' && !kv('hideBuiltin', false) ? [...new Set(is.concat('rodilla'))] : is.filter(x => x !== 'rodilla'); } /* las rodillas de Luis van marcadas por defecto */
     render(); return; }
   const wzt = t.closest('[data-wzt]'); if (wzt && S.wiz) { const [k, v] = wzt.dataset.wzt.split(':'); const a = S.wiz.q[k] || []; S.wiz.q[k] = a.includes(v) ? a.filter(x => x !== v) : a.concat(v); render(); return; }
   if (t.closest('#wzGo')) { S.wiz.prog = wizProgram(); S.wiz.step = 'preview'; render(); window.scrollTo({top:0}); return; }
@@ -365,4 +368,103 @@ document.addEventListener('change', async e => {
   const el = e.target;
   if (el.matches && el.matches('[data-extragoals]')) { await setKv('extraGoals', el.checked); toast(el.checked ? 'Objetivos para otras personas visibles' : 'Objetivos para otras personas ocultos'); }
   if (el.matches && el.matches('[data-askstart]')) { await setKv('askStart', el.checked); toast(el.checked ? 'Te preguntaré al abrir' : 'Se abrirá directo en tu rutina'); }
+});
+
+/* =====================================================================
+   RUTINAS DESDE HEVY: rehace las rutinas de una persona a partir de sus entrenos importados
+   1. Agrupa las sesiones recientes por parecido de ejercicios (y por título de Hevy).
+   2. Cada grupo con 2 o más sesiones es una rutina: ejercicios que aparecen en al menos la mitad
+      de sus últimas 4 sesiones, en su orden habitual, con la mediana de series.
+   3. El orden de la rotación es el de la última vuelta; las superseries salen de la última sesión.
+   4. Si sus repeticiones habituales se alejan del rango de la app, se respeta su rango.
+   ===================================================================== */
+const median = a => { const b = a.slice().sort((x, y) => x - y), n = b.length; return n ? (n % 2 ? b[(n - 1) / 2] : (b[n / 2 - 1] + b[n / 2]) / 2) : null; };
+const quant = (a, q) => { const b = a.slice().sort((x, y) => x - y); return b.length ? b[Math.min(b.length - 1, Math.max(0, Math.round(q * (b.length - 1))))] : null; };
+function hevySessionsAll(){ return Object.values(S.hevy || {}).flat().filter(s => s && s.ex && s.ex.length).map(s => ({...s, d:parseIso(s.date)})).filter(s => !isNaN(s.d)).sort((a, b) => b.d - a.d); }
+function deriveFromHevy(list){
+  list = list || hevySessionsAll(); if (list.length < 2) return null;
+  const cut = new Date(+list[0].d - 120 * 864e5);
+  let recent = list.filter(s => s.d >= cut); if (recent.length < 6) recent = list.slice(0, 30);
+  const setOf = s => new Set(s.ex.map(e => e.n));
+  const jac = (a, b) => { let i = 0; for (const x of a) if (b.has(x)) i++; return i / (a.size + b.size - i || 1); };
+  /* agrupar: mismo título de Hevy y ejercicios parecidos, o ejercicios muy parecidos aunque cambie el título */
+  const groups = [];
+  for (const s of recent) { const st = setOf(s), t = hvKey(s.title);
+    let best = null, bv = 0;
+    for (const g of groups) { const v = jac(st, g.core) + (g.titles[t] ? .25 : 0); if (v > bv) { bv = v; best = g; } }
+    if (best && bv >= .5) { best.items.push(s); best.titles[t] = (best.titles[t] || 0) + 1; }
+    else groups.push({items:[s], core:st, titles:{[t]:1}}); }
+  let keep = groups.filter(g => g.items.length >= 2);
+  if (!keep.length) keep = groups.slice(0, 4);
+  keep = keep.sort((a, b) => b.items.length - a.items.length).slice(0, 7);
+  const routines = {}, order = [], rr = {}, titleMap = {}, sessMap = {}, titleGroups = {};
+  /* orden de la rotación: el de la última vez que se hizo cada rutina */
+  keep.sort((a, b) => a.items[0].d - b.items[0].d);
+  keep.forEach((g, gi) => {
+    const last = g.items.slice(0, 4), k = 'h' + (gi + 1);
+    const cnt = {}, pos = {}, sets = {};
+    for (const s of last) s.ex.forEach((e, i) => { cnt[e.n] = (cnt[e.n] || 0) + 1; (pos[e.n] ||= []).push(i / Math.max(1, s.ex.length - 1)); (sets[e.n] ||= []).push(e.s.length); });
+    const ex = Object.keys(cnt).filter(n => cnt[n] >= Math.max(1, Math.ceil(last.length / 2))).sort((a, b) => median(pos[a]) - median(pos[b]));
+    const title = Object.entries(g.titles).sort((a, b) => b[1] - a[1])[0][0];
+    const orig = g.items.find(s => hvKey(s.title) === title).title || `Rutina ${gi + 1}`;
+    const st = {}; for (const n of ex) st[n] = Math.max(1, Math.min(8, Math.round(median(sets[n]))));
+    /* superseries de la sesión más reciente */
+    const byId = {}; for (const e of g.items[0].ex) if (e.ss != null && ex.includes(e.n)) (byId[e.ss] ||= []).push(e.n);
+    const ss = Object.values(byId).filter(x => x.length > 1);
+    routines[k] = {code:String.fromCharCode(65 + gi), title:orig, warm:'short', ex, sets:st, ...(ss.length ? {ss} : {})};
+    order.push(k); for (const s of g.items) sessMap[s.id] = k; for (const t in g.titles) (titleGroups[t] ||= new Set()).add(k);
+  });
+  /* un título solo identifica la rutina si no se repite en otras (p. ej. "Morning Workout" no sirve) */
+  for (const t in titleGroups) if (titleGroups[t].size === 1) titleMap[t] = [...titleGroups[t]][0];
+  /* rangos de repeticiones: los suyos si se alejan mucho de los de la app; ejercicios desconocidos → ejercicio propio */
+  const reps = {}; for (const s of recent.slice(0, 20)) for (const e of s.ex) for (const x of e.s) if (x[1] > 0) (reps[e.n] ||= []).push(x[1]);
+  const custom = {...kv('customEx', {})}; let newCustom = 0;
+  for (const k of order) for (const n of routines[k].ex) {
+    const r = reps[n] || []; if (r.length < 3) continue;
+    let lo = quant(r, .25), hi = quant(r, .75); if (hi - lo < 2) { const m = median(r); lo = Math.max(1, Math.round(m - 2)); hi = Math.round(m + 2); }
+    if (!EX[n]) { custom[n] = [n, '', lo, hi, 0, 90, 'other', []]; EX[n] = custom[n]; newCustom++; continue; }
+    const m = EX[n]; if (m[8] === 't' || m[8] === 'm') continue;
+    if (Math.abs(lo - m[2]) > 2 || Math.abs(hi - m[3]) > 3) rr[n] = [lo, hi, 0];
+  }
+  const weeks = Math.max(1, (recent[0].d - recent[recent.length - 1].d) / (7 * 864e5));
+  const days = Math.max(2, Math.min(6, Math.round(recent.length / weeks)));
+  const mins = median(recent.map(s => s.dur).filter(x => x > 10 && x < 240)) || 60;
+  return {prog:{routines, order, rr, notes:[{t:`Rutinas rehechas a partir de ${pl(recent.length, 'entreno')} de Hevy: los ejercicios que repites, en tu orden y con tus series habituales. Puedes rehacerlas cuando importes de nuevo.`, ev:[]}], titleMap, sessMap, created:dayKey(new Date())},
+    days, mins:Math.round(mins / 5) * 5, custom, newCustom, n:recent.length};
+}
+/* ¿Son las rutinas de Luis? Parecido de ejercicios con el plan D1-D4 */
+function looksLikeLuis(prog){
+  const base = BASE_PLAN.O.map(k => new Set(BASE_PLAN.R[k].ex));
+  const sc = prog.order.map(k => { const s = new Set(prog.routines[k].ex); return Math.max(...base.map(b => { let i = 0; for (const x of s) if (b.has(x)) i++; return i / (s.size + b.size - i || 1); })); });
+  return sc.length && median(sc) >= .4;
+}
+async function saveHevyProfile(d, opts = {}){
+  const id = 'hevy', old = (kv('profiles', []) || []).find(p => p.id === id);
+  const prof = {id, name: old ? old.name : 'Mis rutinas', person:'me', kind:'hevy', q:{...(old ? old.q : {main:'hip', sec:'none', level:'int', issues:[]}), days:d.days, minutes:d.mins}, prog:d.prog, created: old ? old.created : dayKey(new Date())};
+  await setKv('profiles', (kv('profiles', []) || []).filter(p => p.id !== id).concat(prof));
+  if (d.newCustom) await setKv('customEx', d.custom);
+  if (opts.hide) await setKv('hideBuiltin', true);
+  if (opts.use) { await setKv('profile', id); applyProfile(); S.pick = null; }
+  else if (curProf().id === id) applyProfile();
+  return prof;
+}
+/* Tras importar: si las rutinas no son las de Luis, se crean y se usan; si ya existían, se actualizan */
+async function hevyAfterImport(){
+  const d = deriveFromHevy(); if (!d || !d.prog.order.length) return '';
+  const exists = (kv('profiles', []) || []).some(p => p.id === 'hevy');
+  if (exists) { await saveHevyProfile(d); return `Tus ${pl(d.prog.order.length, 'rutina')} de Hevy se han actualizado.`; }
+  if (looksLikeLuis(d.prog)) return '';
+  await saveHevyProfile(d, {use:true, hide:true});
+  return `He rehecho tus ${pl(d.prog.order.length, 'rutina')} a partir de tus entrenos: ${d.prog.order.map(k => d.prog.routines[k].title).join(', ')}. Las tienes en Entrenar.`;
+}
+document.addEventListener('click', async e => {
+  if (!e.target.closest('[data-hevyredo]')) return;
+  const d = deriveFromHevy(); if (!d || !d.prog.order.length) { toast('Importa primero tu workouts.csv de Hevy (con al menos 2 entrenos).'); return; }
+  await saveHevyProfile(d, {use:true}); rebuild(); S.tab = 'train'; S.home = false; render(); window.scrollTo({top:0});
+  toast(`${pl(d.prog.order.length, 'rutina')} rehechas desde Hevy`);
+});
+document.addEventListener('change', async e => {
+  if (!e.target.matches || !e.target.matches('[data-showbuiltin]')) return;
+  await setKv('hideBuiltin', !e.target.checked); if (!profiles().some(p => p.id === kv('profile', 'me'))) await setKv('profile', profiles()[0].id);
+  applyProfile(); rebuild(); render();
 });

@@ -110,7 +110,7 @@ function rebuild(){
   const hevy = [], hdel = new Set(kv('hevyDeleted', []));
   if (P.person === 'me') for (const k in S.hevy) for (const s of S.hevy[k]) {
     const d = parseIso(s.date), same = appByDay[dayKey(d)]; if (hdel.has(s.id) || (same && s.ex.some(e => same.has(e.n)))) continue;
-    hevy.push({id:s.id, date:d, title:s.title, routine:P.builtin ? routineOf(s.title) : null, src:'hevy',
+    hevy.push({id:s.id, date:d, title:s.title, routine:P.builtin ? routineOf(s.title) : P.kind === 'hevy' && P.prog.titleMap ? ((P.prog.sessMap || {})[s.id] || P.prog.titleMap[hvKey(s.title)] || null) : null, src:'hevy',
       ex:s.ex.map(e => ({n:e.n, sets:e.s.map(x => ({kg:x[0], reps:x[1], type:x[2]||'n', knee:null, rir:x[3] ?? null}))}))});
   }
   S.all = app.concat(hevy).sort((a,b) => b.date - a.date);
@@ -163,7 +163,8 @@ const BW_EQ = ['pull','dip','hyper','band'];
 const needsKg = n => { if (!EX[n]) return false; const eq = meta(n).eq; return eq.length > 0 && !eq.every(x => BW_EQ.includes(x)); };
 /* Ejercicios que no quieres que la app te proponga (por defecto, trabajo específico de glúteo) */
 const EXCL_DEFAULT = ['Hip Thrust (Barbell)','Hip Thrust (Machine)','Glute Bridge'];
-const excluded = () => new Set(kv(pkey('excluded'), pkey('excluded') === 'excluded' ? EXCL_DEFAULT : []));
+const excluded = () => new Set(kv(pkey('excluded'), pkey('excluded') === 'excluded' && !kv('hideBuiltin', false) ? EXCL_DEFAULT : []));
+const hvKey = t => String(t || '').trim().toLowerCase();
 const putHevy = k => IDB.put('hevy', {id:k, sessions:S.hevy[k] || [], cardio:(S.hevyCardio && S.hevyCardio[k]) || []});
 const setsText = (sets, time) => sets.map(x => (time === 'm' ? `${x.reps} min${x.kg ? ` · ${fmtKg(x.kg)} km` : ''}` : x.kg ? `${fmtKg(x.kg)}×${x.reps}` : `${x.reps}${time ? ' s' : ' reps'}`) + (x.rir != null ? ` @${x.rir}` : '')).join(' · ');
 
@@ -1602,6 +1603,8 @@ function renderMore(){
       <h2>Historial de Hevy</h2>
       <p class="muted" style="margin:0;font-size:14px">En Hevy: Perfil → Ajustes → Exportar e importar datos → Exportar entrenamientos. Guarda el archivo en Archivos y súbelo aquí. Hazlo cada dos semanas: los días que ya apuntaste en esta app no se duplican.</p>
       <span class="btn primary file-btn">Importar workouts.csv<input type="file" id="csvIn" accept=".csv,text/csv,text/comma-separated-values" aria-label="Importar workouts.csv de Hevy"></span>
+      <button class="btn" data-hevyredo>📥 Rehacer mis rutinas desde Hevy</button>
+      <p class="faint" style="font-size:12px;margin:0">Agrupa tus entrenos recientes y saca tus rutinas: ejercicios que repites, en tu orden, con tus series y tus superseries. Si las rutinas importadas no son las del plan D1-D4, se hace sola al importar.</p>
       <div id="impMsg" class="muted" style="font-size:13px">${hevyImp ? 'Última importación: ' + ago(new Date(hevyImp)) + '.' : 'Aún no has importado nada.'}</div>
     </section>
     <section class="card pad import">
@@ -1651,9 +1654,10 @@ async function importCsv(file){
       const type = ({warmup:'w', dropset:'d', failure:'f'})[r[ix('set_type')]] || 'n'; if (type === 'w') continue;
       const date = hevyDate(r[ix('start_time')]); if (!date) continue;
       const id = 'h' + date.replace(/\D/g,'');
-      if (!sessions.has(id)) sessions.set(id, {id, date, title:r[ix('title')], ex:[]});
+      if (!sessions.has(id)) { const end = ix('end_time') >= 0 ? hevyDate(r[ix('end_time')] || '') : null;
+        sessions.set(id, {id, date, title:r[ix('title')], ex:[], dur: end ? Math.round((parseIso(end) - parseIso(date)) / 60000) : null}); }
       const s = sessions.get(id);
-      let e = s.ex.find(x => x.n === name); if (!e) { e = {n:name, s:[]}; s.ex.push(e); }
+      let e = s.ex.find(x => x.n === name); if (!e) { e = {n:name, s:[]}; const ss = ix('superset_id') >= 0 ? r[ix('superset_id')] : ''; if (ss !== '' && ss != null) e.ss = ss; s.ex.push(e); }
       const kg = toNum(r[ix('weight_kg')]);
       const rpe = ix('rpe') >= 0 ? toNum(r[ix('rpe')]) : null, rir = rpe ? Math.max(0, Math.min(5, Math.round(10 - rpe))) : null;
       e.s.push(rir != null ? [kg, reps, type, rir] : type === 'n' ? [kg, reps] : [kg, reps, type]);
@@ -1668,8 +1672,10 @@ async function importCsv(file){
       S.hevy[k] = list; await putHevy(k);
     }
     await setKv('lastHevy', Date.now());
+    const rt = typeof hevyAfterImport === 'function' ? await hevyAfterImport() : '';
     rebuild();
-    msg.textContent = `Listo: ${pl(sessions.size, 'sesión', 'sesiones')} de Hevy y ${cardioRows.size} de cardio importadas.`;
+    msg.textContent = `Listo: ${pl(sessions.size, 'sesión', 'sesiones')} de Hevy y ${cardioRows.size} de cardio importadas.${rt ? ' ' + rt : ''}`;
+    if (rt) { const txt = msg.textContent; render(); const m2 = $('#impMsg'); if (m2) m2.textContent = txt; }
     toast(`${pl(sessions.size, 'sesión importada', 'sesiones importadas')}`); updateStatus();
   } catch(e) { msg.textContent = (e && e.message) || 'No se pudo importar el archivo.'; }
 }
