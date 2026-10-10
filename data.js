@@ -112,7 +112,8 @@ const ROUTINES = {
  d2:{code:'D2', title:'Espalda · Bíceps', warm:'short',
      ex:['Pull Up','Lat Pulldown (Cable)','Seated Row (Machine)','T Bar Row','Single Arm Lat Pulldown','Face Pull','Bicep Curl (Cable)','Cross Body Hammer Curl']},
  d3:{code:'D3', title:'Pierna', warm:'full',
-     ex:['Leg Press (Machine)','Romanian Deadlift (Barbell)','Leg Extension (Machine)','Seated Leg Curl (Machine)','Hip Abduction (Machine)','Hip Adduction (Machine)','Single Leg Standing Calf Raise (Machine)']},
+     ex:['Leg Press (Machine)','Romanian Deadlift (Barbell)','Leg Extension (Machine)','Seated Leg Curl (Machine)','Hip Abduction (Machine)','Hip Adduction (Machine)','Single Leg Standing Calf Raise (Machine)'],
+     sets:{'Leg Press (Machine)':4,'Leg Extension (Machine)':4,'Seated Leg Curl (Machine)':4,'Hip Adduction (Machine)':2}},
  d4:{code:'D4', title:'Hombro · Pecho', warm:'short', knee:true,
      ex:['Shoulder Press (Dumbbell)','Lateral Raise (Machine)','Single Arm Lateral Raise (Cable)','Chest Supported Reverse Fly (Dumbbell)','Incline Bench Press (Smith Machine)','Crunch (Machine)']}
 };
@@ -123,7 +124,9 @@ const WARM = {
  full:['Bici o caminata suave · 3 min','90/90 de cadera · 8 cambios','Flexor de cadera en zancada · 30 s por lado','Rana en cuadrupedia · 10 balanceos','Puente de glúteo · 12 reps','Pasos laterales con mini banda · 10 por lado','Sentadilla isométrica en pared · 2 × 30-45 s','Sentadilla goblet con pausa · 5 reps','Extensión de cuádriceps ligera · 2 × 15']
 };
 const KNEE_BLOCK = ['Sentadilla isométrica en pared · 2 × 45 s','Extensión terminal de rodilla · 2 × 15 por pierna','Bajada lenta desde escalón · 2 × 8 por pierna'];
-const PLAN_VERSION = 'v1.1';
+const PLAN_VERSION = 'v1.2';
+/* Series fijadas por el plan (si no aparece, 3) */
+const planSets = (n, def = 3) => { for (const k of ORDER) { const st = ROUTINES[k].sets; if (st && st[n]) return st[n]; } return def; };
 
 /* =====================================================================
    CIENCIA: base de estudios (revisada el 10/10/2026)
@@ -182,7 +185,8 @@ const EV = Object.fromEntries(EVIDENCE.map(e => [e.id, e]));
 const TEMAS = {hip:'Hipertrofia', fuerza:'Fuerza', rodilla:'Rodilla y cadera', movilidad:'Movilidad', correr:'Correr'};
 
 /* Músculos grandes: más margen de crecimiento y más impacto en el físico */
-const BIG = ['cu','gl','es','pe','fe'];
+/* Músculos grandes que la app vigila. Sin glúteo: Luis no quiere trabajo específico de glúteo (10/10/2026) */
+const BIG = ['cu','es','pe','fe'];
 
 /* Consejo basado en estudios para ejercicios concretos */
 const EX_TIPS = {

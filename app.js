@@ -213,8 +213,8 @@ function recommendFor(mu, k = 3, exclude = []){
   const score = c => { const cm = meta(c); return (EX_TIPS[c] ? 4 : 0) + (cm.knee ? -1 : 1) + Math.min(4, history(c).length / 4); };
   return Object.keys(EX).filter(c => meta(c).mus[0] === mu && hasEq(c, eq) && !exclude.includes(c)).sort((a,b) => score(b) - score(a)).slice(0, k);
 }
-function planVolume(){ const v = {}; for (const k in MUSCLES) v[k] = 0; for (const key of ORDER) { const pv = sessionVolume(ROUTINES[key].ex.map(n => ({n, sets:[{},{},{}]}))); for (const m in pv) if (m in v) v[m] += pv[m]; } return v; }
-function estMinutes(names){ let sec = 7*60; for (const n of names) { const sets = 3; sec += sets*40 + (sets-1)*restOf(n) + 60; } return Math.round(sec/60); }
+function planVolume(){ const v = {}; for (const k in MUSCLES) v[k] = 0; for (const key of ORDER) { const pv = sessionVolume(ROUTINES[key].ex.map(n => ({n, sets:Array.from({length:planSets(n)}, () => ({}))}))); for (const m in pv) if (m in v) v[m] += pv[m]; } return v; }
+function estMinutes(names){ let sec = 7*60; for (const n of names) { const sets = planSets(n); sec += sets*40 + (sets-1)*restOf(n) + 60; } return Math.round(sec/60); }
 function measuredRests(days = 28){
   const cut = Date.now() - days*864e5, out = [];
   for (const s of Object.values(S.app)) { if (s.status !== 'done' || s.start < cut) continue;
@@ -236,7 +236,7 @@ function adviceList(){
   const exIn4 = new Set(S.all.filter(s => s.date >= cut).flatMap(s => s.ex.map(e => e.n)));
   // 1. Constancia
   if (perWeek < 3.5) out.push({prio:1, kind:'warn', title:`Constancia: ${fmt1(perWeek)} sesiones por semana`, ev:['pelland','schoenfeld17v'],
-    body:`Tu plan son 4. Si completaras las 4 rutinas cada semana, ya harías <b>${fmt1(plan.cu)}</b> series de cuádriceps, <b>${fmt1(plan.fe)}</b> de femoral y <b>${fmt1(plan.gl)}</b> de glúteo. ${Math.min(plan.cu, plan.fe, plan.gl) < 10 ? ' Y aun completándolas, la pierna se queda por debajo de 10: mira abajo cómo subirla en el D3.' : ' Lo que más músculo te dará ahora mismo no es cambiar ejercicios: es no saltarte el día de pierna.'}`});
+    body:`Tu plan son 4. Si completaras las 4 rutinas cada semana, ya harías <b>${fmt1(plan.cu)}</b> series de cuádriceps y <b>${fmt1(plan.fe)}</b> de femoral. ${Math.min(plan.cu, plan.fe) < 10 ? ' Y aun completándolas, la pierna se queda por debajo de 10: mira abajo cómo subirla en el D3.' : ' Lo que más músculo te dará ahora mismo no es cambiar ejercicios: es no saltarte el día de pierna.'}`});
   // 2. Volumen por músculo
   const order = Object.keys(MUSCLES).sort((a,b) => (BIG.includes(b) - BIG.includes(a)) || avg[a] - avg[b]);
   for (const mu of order) {
@@ -275,8 +275,8 @@ function adviceList(){
     out.push({prio:0, kind:'bad', title:`Rodilla en ámbar con ${meta(n).es}`, ev:['powers14','willy19'],
       body:`Media de rodilla ≥ 3/10 en las últimas sesiones. Acorta el recorrido a la zona sin molestias${alts.length ? ` o cámbialo por ${alts.map(a => `<b>${esc(meta(a).es)}</b>`).join(' o ')}` : ''}. Si empeora al día siguiente o se hincha, que la vea un fisio.`}); }
   const hipSets = S.all.filter(s => s.date >= cut).flatMap(s => s.ex).filter(e => ['abd','hip'].includes(meta(e.n).pat)).reduce((a,e) => a + e.sets.filter(x => x.type !== 'w').length, 0) / 4;
-  if (hipSets < 6) out.push({prio:0, kind:'warn', title:`Cadera para tus rodillas: ${fmt1(hipSets)} series/semana`, ev:['nascimento18','willy19'],
-    body:`Fortalecer cadera + rodilla reduce el dolor de rodilla más que trabajar solo la rodilla. Apunta a 6+ series semanales de abducción o hip thrust. Son rápidas (60-75 s de descanso) y no cargan la rodilla: <b>no la saltes en el D3</b>.`});
+  if (hipSets < 3) out.push({prio:0, kind:'warn', title:`Cadera para tus rodillas: ${fmt1(hipSets)} series/semana`, ev:['nascimento18','willy19'],
+    body:`Fortalecer cadera + rodilla reduce el dolor de rodilla más que trabajar solo la rodilla. Mínimo: las 3 series de abducción del D3 cada semana, más los pasos laterales con banda del calentamiento. Son rápidas (60-75 s de descanso) y no cargan la rodilla: <b>no la saltes en el D3</b>.`});
   // 7. Fuerza
   const COMP = ['press_h','press_inc','press_v','row','pull_v','squat','hinge'];
   const heavySets = S.all.filter(s => s.date >= cut).flatMap(s => s.ex).filter(e => COMP.includes(meta(e.n).pat)).reduce((a,e) => a + e.sets.filter(x => x.type !== 'w' && x.kg && x.reps <= 8).length, 0) / 4;
@@ -284,7 +284,7 @@ function adviceList(){
     body:'Casi todas tus series son de 9-15 reps, que van muy bien para crecer. Para ganar fuerza, haz la <b>primera serie del primer básico de cada día a 6-8 reps</b> (RIR 2) y el resto como siempre. Con 1-2 series pesadas por sesión basta: la fuerza se estanca antes que la hipertrofia. En la pierna, solo si la rodilla está en verde.'});
   // 8. Movilidad
   out.push({prio:3, kind:'info', title:'Movilidad de cadera sin estirar más tiempo', ev:['afonso21','wolf23'],
-    body:'La fuerza con recorrido largo mejora la movilidad igual que los estiramientos. Tus mejores aliados: <b>peso muerto rumano</b> bajando lo que permita la espalda recta, <b>sentadilla goblet a cajón</b> bajando el cajón cada 2-3 semanas, y <b>hip thrust</b>. Mantén el 90/90 del calentamiento.'});
+    body:'La fuerza con recorrido largo mejora la movilidad igual que los estiramientos. Tus mejores aliados: <b>peso muerto rumano</b> bajando lo que permita la espalda recta, <b>sentadilla goblet a cajón</b> bajando el cajón cada 2-3 semanas, y la <b>prensa</b> con recorrido completo si la rodilla está en verde. Mantén el 90/90 del calentamiento.'});
   // 9. Correr
   out.push({prio:2, kind:'info', title:'Correr con tus rodillas', ev:['alentorn17','nielsen14','lenhart14','lauersen14','blagrove18'],
     body:'<b>1)</b> Correr de forma recreativa no daña las rodillas: los corredores recreativos tienen menos artrosis que los sedentarios. <b>2)</b> Sube los km poco a poco: los novatos que aumentaban más de un 30 % por semana se lesionaban más. <b>3)</b> Pasos más cortos y rápidos (+5-10 % de cadencia) reducen la carga sobre la rótula. <b>4)</b> La fuerza de pierna reduce lesiones y mejora tu economía de carrera: el D3 es tu seguro.'});
@@ -298,7 +298,7 @@ function weekStatus(){
   const done = S.all.filter(s => s.date >= w0).length, left = Math.max(0, 4 - done);
   const nx = nextRoutine(); const upcoming = []; let k = ORDER.indexOf(nx.key);
   for (let i = 0; i < left; i++) { upcoming.push(ORDER[(k + i) % 4]); }
-  const pv = {}; for (const key of upcoming) { const sv = sessionVolume(ROUTINES[key].ex.map(n => ({n, sets:[{},{},{}]}))); for (const m in sv) pv[m] = (pv[m]||0) + sv[m]; }
+  const pv = {}; for (const key of upcoming) { const sv = sessionVolume(ROUTINES[key].ex.map(n => ({n, sets:Array.from({length:planSets(n)}, () => ({}))}))); for (const m in sv) pv[m] = (pv[m]||0) + sv[m]; }
   return {v, done, left, upcoming, pv};
 }
 function renderAdvice(){
@@ -414,7 +414,8 @@ function renderPicker(){
 function newSet(t){ return {kg:'', reps:'', knee:'', done:false, t:t||'n'}; }
 function exEntry(n, from){
   const sg = suggest(n);
-  const k = sg.last ? Math.max(2, Math.min(4, sg.last.sets.length)) : 3;
+  const inPlan = ORDER.some(r => ROUTINES[r].ex.includes(n));
+  const k = planSets(n, null) || (inPlan ? 3 : sg.last ? Math.max(2, Math.min(4, sg.last.sets.length)) : 3);
   return {n, from: from || null, sets: Array.from({length:k}, () => newSet())};
 }
 const restOf = n => kv('rest:' + n, meta(n).rest);
