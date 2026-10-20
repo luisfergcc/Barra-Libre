@@ -35,6 +35,7 @@ function applyProfile(){
   ORDER.length = 0;
   if (p.builtin || !p.prog) { Object.assign(ROUTINES, JSON.parse(JSON.stringify(BASE_PLAN.R))); ORDER.push(...BASE_PLAN.O); PRR = {}; }
   else { Object.assign(ROUTINES, JSON.parse(JSON.stringify(p.prog.routines))); ORDER.push(...p.prog.order); PRR = p.prog.rr || {}; }
+  if (typeof applyEdits === 'function') applyEdits();
   REC_CACHE = null;
 }
 async function switchProfile(id){
@@ -282,6 +283,7 @@ function profAdvice(){
       if (worst && worst[1] < 5) out.push({prio:1, kind: worst[1] === 0 ? 'bad' : 'warn', title:`${PN[worst[0]].lab}: ${worst[1]} puntos`, ev: worst[0] === 'run' ? ['helgerud07','milanovic15'] : worst[0] === 'ag' ? ['markovic07'] : ['sanchez20'],
         body: worst[1] === 0 ? 'Un 0 en cualquier prueba elimina. Es la prioridad de las próximas semanas.' : 'Es la prueba que más te baja la media. Dale una sesión extra a la semana.'}); } }
   if (!out.some(x => x.kind === 'warn' || x.kind === 'bad') && S.all.length) out.push({prio:4, kind:'good', title:'Vas en línea con tu objetivo', ev: (GOALS[q.main] || {ev:[]}).ev.slice(0, 2), body:'Esta semana cumples lo que piden los estudios para tu objetivo. Sigue con el plan.'});
+  if (typeof weeklyBoosts === 'function') out.push(...weeklyBoosts());
   return out.sort((a,b) => a.prio - b.prio);
 }
 /* Consejos dentro de la rutina, según el objetivo del perfil */

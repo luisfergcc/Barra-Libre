@@ -421,3 +421,14 @@ details.ra .ra-b{padding:0 12px 12px;display:flex;flex-direction:column;gap:8px}
 .live-bar .dot{width:9px;height:9px;border-radius:50%;background:var(--bad);animation:livepulse 1.4s infinite}
 @keyframes livepulse{50%{opacity:.35}}
 @media (prefers-reduced-motion:reduce){.live-bar .dot{animation:none}}
+
+/* 1.8.0: editor de rutinas y visor de otros entrenos */
+.re-list{display:flex;flex-direction:column;gap:8px;margin:6px 0 10px}
+.re-row{border:1px solid var(--line,rgba(255,255,255,.1));border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.re-row.ss{border-left:3px solid var(--accent)}
+.re-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.re-act{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.re-sets{display:inline-flex;align-items:center;gap:6px;margin:0 4px}
+.re-act .btn.small{min-width:38px}
+.ov-ex{border:1px solid var(--line,rgba(255,255,255,.1));border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:4px}
+.ov-h{display:flex;justify-content:space-between;align-items:center;gap:8px}

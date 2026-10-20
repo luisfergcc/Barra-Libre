@@ -418,11 +418,12 @@ function adviceList(){
   // 9d. RIR apuntado
   { const rr = S.all.filter(x => x.date >= cut).flatMap(x => x.ex.flatMap(e => e.sets)).map(x => x.rir).filter(x => x != null);
     if (rr.length >= 10) { const zero = rr.filter(x => x === 0).length / rr.length, avg = rr.reduce((a,b) => a+b, 0) / rr.length;
-      if (zero >= .4) out.push({prio:2, kind:'warn', title:`Vas al fallo en el ${Math.round(zero*100)} % de las series`, ev:['refalo23'], body:'Ir al fallo no da más músculo que quedarse a 1-2 y cansa más: pierdes repeticiones en las series siguientes. Para 1-2 antes, salvo en la última serie de los aislamientos.'});
+      if (zero >= .4) out.push({prio:2, kind:'warn', title:`Vas al fallo en el ${Math.round(zero*100)} % de las series`, ev:['refalo23','grgic22','vieira21'], body:'Ir al fallo no da más músculo que quedarse a 1-2 y cansa más: pierdes repeticiones en las series siguientes. Para 1-2 antes, salvo en la última serie de los aislamientos.'});
       else if (avg >= 3) out.push({prio:2, kind:'warn', title:`Dejas ${fmt1(avg)} reps en reserva de media`, ev:['refalo23','pelland'], body:'Lejos del fallo el estímulo baja. Apunta a 1-2 en reserva: sube el peso o haz más repeticiones.'}); } }
   // 10. Lo que va bien
   if (exIn4.has('Overhead Triceps Extension (Cable)') || exIn4.has('Overhead Triceps Extension (Dumbbell)')) out.push({prio:4, kind:'good', title:'Tríceps tras nuca: bien elegido', ev:['maeo23'], body:'Es la variante que más hizo crecer el tríceps en los estudios.'});
   if (exIn4.has('Seated Leg Curl (Machine)')) out.push({prio:4, kind:'good', title:'Femoral sentado: bien elegido', ev:['maeo21'], body:'Sentado hizo crecer más el femoral que tumbado.'});
+  if (typeof weeklyBoosts === 'function') out.push(...weeklyBoosts());
   return out.sort((a,b) => a.prio - b.prio);
 }
 function weekStatus(){
@@ -463,8 +464,10 @@ function sheetEvidence(id){
   const e = EV[id]; if (!e) return;
   openSheet(`<h3 class="sheet-t">${esc(e.cita)} · ${e.year}</h3>
     <p class="muted" style="margin:0;font-size:13px;text-align:center">${esc(e.tipo)} · ${esc(e.rev)} · ${TEMAS[e.tema]}</p>
+    ${e.n ? `<p class="faint" style="margin:6px 0 0;font-size:12px;text-align:center">${esc(e.n)}</p>` : ''}
     <div class="ev-box"><div class="eyebrow">Qué encontró</div><p>${esc(e.hallazgo)}</p></div>
     <div class="ev-box"><div class="eyebrow">Cómo lo aplica la app</div><p>${esc(e.regla)}</p></div>
+    ${e.url ? `<a class="btn ghost wide" href="${esc(e.url)}" target="_blank" rel="noopener">Ver el estudio ↗</a>` : ''}
     <button class="btn primary wide" data-sheetclose>Cerrar</button>`);
 }
 const recClass = p => p >= 80 ? 'good' : p >= 50 ? 'warn' : 'bad';
@@ -545,8 +548,9 @@ function renderPicker(){
     <div class="muted">${sel === nx.key ? esc(nx.why) : (lastSame ? `La última vez: ${fmtDate(lastSame.date,{weekday:'long',day:'numeric',month:'short'})} (${ago(lastSame.date)}).` : 'Primera vez con esta rutina.')} Músculos de hoy al ${nx.ready[sel]} %.</div>
     <ul style="list-style:none;margin:4px 0 0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:14px">${preview.replace(/<li>/g,'<li style="display:flex;justify-content:space-between;gap:10px">')}</ul>
     <div class="faint" style="font-size:13px">Duración estimada: ~${estMinutes(plan.filter(p => p.n).map(p => p.n), sel)} min</div>
-    ${renderRA(plan.filter(p => p.n).map(p => ({n:p.n, sets:planSets(p.n)})), sel, false)}
+    ${renderRA(plan.filter(p => p.n).map(p => ({n:p.n, sets:planSets(p.n)})), sel, false, {act:true})}
     <button class="btn primary wide" id="start">Empezar ${r.code}</button>
+    <button class="btn ghost wide" data-reedit="${sel}">✎ Editar ${r.code}${r.edited ? ' · editada' : ''}</button>
   </section>
   <div class="eyebrow" style="margin-top:6px">Elegir otra rutina · % = músculos recuperados</div>
   <div class="routines">${cards}</div>
@@ -615,7 +619,7 @@ function renderLive(){
   </details>` : '';
   return `
   ${deloadActive() ? '<div class="banner" style="margin-bottom:12px"><span><b>Semana de descarga:</b> mitad de series, mismo peso, deja 3 en reserva.</span></div>' : ''}
-  <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:12px"><div class="eyebrow">${r ? r.code : 'Libre'} · ${esc(L.gym || '')}${curProf().builtin ? '' : ' · ' + esc(curProf().name)} · en curso · <span id="liveMins">${mins}</span> min</div><span class="row" style="gap:6px"><button class="btn small" id="liveMenu" aria-label="Opciones de la sesión">Opciones</button><button class="btn small" id="liveExit">Salir</button></span></div>
+  <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:12px"><div class="eyebrow">${r ? r.code : 'Libre'} · ${esc(L.gym || '')}${curProf().builtin ? '' : ' · ' + esc(curProf().name)} · en curso · <span id="liveMins">${mins}</span> min</div><span class="row" style="gap:6px"><button class="btn small" id="liveOthers" aria-label="Ver otros entrenos">Otros entrenos</button><button class="btn small" id="liveMenu" aria-label="Opciones de la sesión">Opciones</button><button class="btn small" id="liveExit">Salir</button></span></div>
   <div class="stack">
     ${warm}
     ${renderRA(L.ex.map(e => ({n:e.n, sets:e.sets.filter(x => x.t !== 'w').length})), L.routine, false)}
@@ -1016,7 +1020,7 @@ function renderSessions(){
 const COMPOUND = new Set(['press_h','press_inc','press_v','row','pull_v','squat','hinge']);
 const ISOL = new Set(['fly','lat_raise','knee_ext','leg_curl','curl','tri','rear','front_raise','abd','add','calf']);
 function routineVol(items){ const v = {}; for (const it of items) { const m = meta(it.n); if (NOVOL.has(m.pat)) continue; m.mus.forEach((mu,i) => v[mu] = (v[mu]||0) + it.sets * (i === 0 ? 1 : .5)); } return v; }
-function analyzeRoutine(items, key){
+function analyzeRoutine(items, key, opts){
   const out = [], vol = routineVol(items), names = items.map(x => x.n);
   const planItems = k => ROUTINES[k].ex.map(n => ({n, sets:planSets(n)}));
   const per = Object.fromEntries(ORDER.map(k => [k, k === key ? vol : routineVol(planItems(k))]));
@@ -1047,7 +1051,7 @@ function analyzeRoutine(items, key){
       const need = Math.ceil(10 - tot), room = Math.max(0, Math.floor(11 - vol[mu]));
       const rec = recommendFor(mu, 2, names).filter(n => !exc.has(n));
       const other = ORDER.filter(k => k !== key && (per[k][mu]||0) > 0)[0];
-      out.push({prio:1, kind:'warn', ev:['schoenfeld17v','pelland'], title:`${MUSCLES[mu]}: ${fmt1(tot)} series/semana en tus rutinas (meta 10)`,
+      out.push({prio:1, kind:'warn', ev:['schoenfeld17v','pelland','schoenfeld19vol','bazvalle22'], title:`${MUSCLES[mu]}: ${fmt1(tot)} series/semana en tus rutinas (meta 10)`,
         body:`Este es tu día de ${MUSCLES[mu].toLowerCase()}. ${room >= need ? `Añade <b>${pl(need, 'serie')}</b> aquí` : `Añade <b>${pl(room, 'serie')}</b> aquí${other ? ` y ${pl(need - room, 'serie')} en el ${ROUTINES[other].code}` : ''}`}${rec.length ? `, por ejemplo de ${rec.map(n => `<b>${esc(meta(n).es)}</b>`).join(' o ')}` : ''}.`});
     }
     // 3. Músculos que ya pasan de 20 a la semana: esta rutina puede recortar
@@ -1066,11 +1070,12 @@ function analyzeRoutine(items, key){
   let sec = 7*60; for (const x of items) sec += meta(x.n).mins ? cardioMin(x.n, key)*60 : x.sets*40 + Math.max(0, x.sets - 1)*restOf(x.n) + 60;
   const mins = Math.round(sec/60);
   if (typeof profRoutineTips === 'function') out.push(...profRoutineTips(items, key));
+  if (typeof routineBoosts === 'function' && !(opts && opts.noBoost)) out.push(...routineBoosts(items, key, {per, pv, vol}));
   if (mins > 75) {
-    const pairs = [], used = new Set(), byMus = mu => items.find(x => meta(x.n).mus[0] === mu && ISOL.has(meta(x.n).pat) && !used.has(x.n));
-    for (const [a,b] of [['bi','tr'],['ho','ho'],['pe','es'],['cu','fe'],['ge','co']]) { const x = byMus(a); if (!x) continue; used.add(x.n); const y = byMus(b); if (y) { used.add(y.n); pairs.push(`${meta(x.n).es} + ${meta(y.n).es}`); } else used.delete(x.n); }
-    out.push({prio:2, kind:'info', ev:['remmert25'], title:`Rutina larga: ≈${mins} min`,
-      body:`${pairs.length ? `Haz en superserie <b>${pairs.slice(0,2).map(esc).join('</b> y <b>')}</b>.` : ''} También puedes hacer 2 series en el último ejercicio de cada músculo.`});
+    const pairs = [], pairsRaw = [], used = new Set(), byMus = mu => items.find(x => meta(x.n).mus[0] === mu && ISOL.has(meta(x.n).pat) && !used.has(x.n));
+    for (const [a,b] of [['bi','tr'],['ho','ho'],['pe','es'],['cu','fe'],['ge','co']]) { const x = byMus(a); if (!x) continue; used.add(x.n); const y = byMus(b); if (y) { used.add(y.n); pairs.push(`${meta(x.n).es} + ${meta(y.n).es}`); pairsRaw.push([x.n, y.n]); } else used.delete(x.n); }
+    out.push({prio:2, kind:'info', ev:['zhang25','remmert25'], title:`Rutina larga: ≈${mins} min`,
+      body:`${pairs.length ? `Haz en superserie <b>${pairs.slice(0,2).map(esc).join('</b> y <b>')}</b>: en el metaanálisis ahorraron ~37 % del tiempo con la misma hipertrofia (aunque se sienten más duras; solo 2 estudios medían hipertrofia).` : ''} También puedes hacer 2 series en el último ejercicio de cada músculo.`, act: pairsRaw.length ? `ss|${pairsRaw[0][0]}|${pairsRaw[0][1]}` : null, actLab:'Hacer superserie'});
   }
   // 6. Ejercicios casi iguales: mismo gesto (misma plantilla de movimiento) y mismo músculo principal.
   //    Antes se comparaba la categoría ('tri', 'row'…), demasiado amplia: avisaba de polea alta + tras nuca, que son posiciones distintas (Maeo 2023).
@@ -1090,13 +1095,14 @@ function analyzeRoutine(items, key){
   if (!out.some(x => x.kind === 'warn')) out.push({prio:4, kind:'good', ev:['pelland'], title:'Rutina equilibrada', body:'Ningún músculo pasa de ~11 series en la sesión y la rodilla no se sobrecarga.'});
   return {tips: out.sort((a,b) => a.prio - b.prio), vol, mins};
 }
-function renderRA(items, key, open){
+function renderRA(items, key, open, opts){
+  opts = opts || {};
   if (!items.length) return '';
-  const r = analyzeRoutine(items, key), n = r.tips.filter(t => t.kind !== 'good').length;
+  const r = analyzeRoutine(items, key, opts), n = r.tips.filter(t => t.kind !== 'good').length;
   const chips = Object.entries(r.vol).filter(([mu,v]) => MUSCLES[mu] && v >= 1).sort((a,b) => b[1] - a[1]).map(([mu,v]) => `<span class="chip small${v > 11.5 ? ' on' : ''}">${MUSCLES[mu]} ${fmt1(v)}</span>`).join('');
   return `<details class="ra"${open ? ' open' : ''}><summary><span>Análisis de esta rutina</span><span class="ra-n${n ? '' : ' ok'}">${n ? n + (n === 1 ? ' aviso' : ' avisos') : 'Bien'}</span></summary><div class="ra-b">
     <div class="chip-row">${chips}</div><p class="faint" style="font-size:12px;margin:0">Series por músculo en esta sesión (directas + ½ de las de apoyo, como en los estudios) · ≈${r.mins} min</p>
-    ${r.tips.map(t => `<article class="tipc ${t.kind}"><div class="tipc-h"><span class="dotk"></span><b>${esc(t.title)}</b></div><div class="tipc-b">${t.body}</div><div class="row" style="gap:6px">${t.ev.map(evChip).join('')}${t.id ? `<button class="btn small ghost" data-rahide="${esc(t.id)}">No volver a avisar</button>` : ''}</div></article>`).join('')}
+    ${r.tips.map(t => `<article class="tipc ${t.kind}"><div class="tipc-h"><span class="dotk"></span><b>${esc(t.title)}</b></div><div class="tipc-b">${t.body}</div><div class="row" style="gap:6px">${t.ev.map(evChip).join('')}${t.act && (opts.act || opts.draft) ? `<button class="btn small primary" data-raop="${esc(t.actKey || key)}|${esc(t.act)}">${esc(t.actLab || 'Aplicar')}</button>` : ''}${t.id ? `<button class="btn small ghost" data-rahide="${esc(t.id)}">No volver a avisar</button>` : ''}</div></article>`).join('')}
   </div></details>`;
 }
 
@@ -1114,8 +1120,9 @@ function sheetGuide(n, back){
     <h4 class="g-h">Cómo se hace</h4><ol class="g-steps">${g.how.map(x => `<li>${esc(x)}</li>`).join('')}</ol>
     <h4 class="g-h">Errores típicos</h4><ul class="g-err">${g.err.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
     ${tip ? `<button class="ev-line" data-ev="${tip.ev}" style="margin-top:8px">📚 ${esc(tip.txt)} <span class="faint">· ${esc(EV[tip.ev].cita.split(' ')[0].replace(',',''))} ${EV[tip.ev].year}</span></button>` : ''}
+    ${!m.time && !m.mins && typeof EV !== 'undefined' && EV.schoenfeld15t && !['balance','mob','agility','jump','cardio'].includes(m.pat) ? `<button class="ev-line" data-ev="schoenfeld15t" style="margin-top:8px">📚 Sube con fuerza y baja controlado en 2-3 s. Repeticiones de 0,5 a 8 s dieron la misma hipertrofia <span class="faint">· Schoenfeld 2015</span></button>` : ''}
     ${last ? `<p class="muted" style="font-size:13px;margin:10px 0 0">Tu última vez: ${fmtDate(last.date)} · ${esc(setsText(last.sets, m.time))}</p>` : ''}
-    ${(back === 'add' || back === 'replace') && S.live && !S.live.ex.some(e => e.n === n) ? `<button class="btn primary wide" data-pkpick="${esc(n)}" style="margin-top:12px">${back === 'add' ? 'Añadir a la sesión' : 'Usar este ejercicio'}</button>` : ''}`);
+    ${back === 'routine' && typeof RE !== 'undefined' && RE && !RE.ex.some(e => e.n === n) ? `<button class="btn primary wide" data-pkpick="${esc(n)}" style="margin-top:12px">Añadir a la rutina</button>` : (back === 'add' || back === 'replace') && S.live && !S.live.ex.some(e => e.n === n) ? `<button class="btn primary wide" data-pkpick="${esc(n)}" style="margin-top:12px">${back === 'add' ? 'Añadir a la sesión' : 'Usar este ejercicio'}</button>` : ''}`);
   if (typeof gmount === 'function') gmount($('#gAnim'), g.tpl);
 }
 
@@ -1126,7 +1133,7 @@ function openPicker(mode, i){
   pickerShell();
 }
 function pickerShell(){
-  const title = PK.mode === 'add' ? 'Agregar ejercicio' : PK.mode === 'replace' ? 'Reemplazar ejercicio' : `Biblioteca · ${Object.keys(EX).length} ejercicios`;
+  const title = PK.mode === 'routine' ? 'Añadir a la rutina' : PK.mode === 'add' ? 'Agregar ejercicio' : PK.mode === 'replace' ? 'Reemplazar ejercicio' : `Biblioteca · ${Object.keys(EX).length} ejercicios`;
   openSheet(`<div class="pk-head"><h3 class="sheet-t" style="margin:0">${title}</h3><div class="row" style="gap:6px"><button class="btn small" data-cxnew>+ Crear</button><button class="btn small ghost" data-sheetclose>Cerrar</button></div></div>
     <input class="field" id="pkQ" placeholder="Buscar ejercicio" autocomplete="off" value="${esc(PK.q)}">
     <div class="row" style="gap:6px;margin-top:8px"><button class="chip small" data-pkeq="gym">Material: ${esc(currentGym().name)}</button><button class="chip small" data-pkeq="all">Todo</button><button class="chip small" data-pklad>🪜 Escaleras</button></div>
@@ -1145,7 +1152,7 @@ function drawPicker(){
 }
 function drawPickerList(){
   const L = S.live, eq = currentGym().eq, q = PK.q.trim().toLowerCase();
-  const inSession = new Set(L && PK.mode !== 'browse' ? L.ex.map(e => e.n) : []);
+  const inSession = new Set(PK.mode === 'routine' && typeof RE !== 'undefined' && RE ? RE.ex.map(e => e.n) : L && PK.mode !== 'browse' ? L.ex.map(e => e.n) : []);
   const custom = kv('customEx', {});
   const exc = excluded();
   const names = Object.keys(EX).filter(n => !inSession.has(n) && !exc.has(n)
@@ -1223,29 +1230,32 @@ function beep(f=880, d=.2, w=0){ try{ audio = audio || new (window.AudioContext|
 async function keepAwake(on){ try{ if (on && 'wakeLock' in navigator && !wake) { wake = await navigator.wakeLock.request('screen'); wake.addEventListener('release', () => { wake = null; }); } if (!on && wake){ await wake.release(); wake = null; } }catch(e){} }
 function startRest(secs){
   beep(0,.001);
-  if (restT) clearInterval(restT.iv);
+  if (restT) { clearInterval(restT.iv); clearTimeout(restT.to); }
   restT = {end: Date.now() + secs*1000, total: secs};
   $('#rest').classList.remove('end');
   drawRest(); restT.iv = setInterval(drawRest, 250);
+  restT.to = setTimeout(drawRest, secs*1000 + 40);   // además del intervalo, un aviso exacto a la hora (el intervalo se frena en segundo plano)
+  if (typeof alertStart === 'function') alertStart();
 }
-function stopRest(){ if (restT) clearInterval(restT.iv); restT = null; const el = $('#rest'); el.hidden = true; el.classList.remove('end'); }
+function stopRest(){ if (restT) { clearInterval(restT.iv); clearTimeout(restT.to); } restT = null; const el = $('#rest'); el.hidden = true; el.classList.remove('end'); if (typeof alertStop === 'function') alertStop(); }
 function drawRest(){
   if (!restT) return;
   const left = Math.ceil((restT.end - Date.now())/1000), el = $('#rest');
   el.hidden = false;
   const pct = Math.max(0, Math.min(100, 100 * (1 - left / restT.total)));
   if (left <= 0) {
-    if (!restT.rang) { restT.rang = true; beep(988,.2); beep(1319,.35,.22); el.classList.add('end'); setTimeout(() => { if (restT && restT.rang) stopRest(); }, 4000); }
+    if (!restT.rang) { restT.rang = true; if (!(typeof alertAudioPlaying === 'function' && alertAudioPlaying())) { beep(988,.2); beep(1319,.35,.22); } el.classList.add('end'); if (typeof alertEnd === 'function') alertEnd(); setTimeout(() => { if (restT && restT.rang) stopRest(); }, 4000); }
     el.innerHTML = `<div class="rbar" role="timer"><i style="width:100%"></i><div class="rrow"><span class="rlabel">Descanso terminado</span><b>¡A por la serie!</b><button class="rbtn primary" data-r="x">Cerrar</button></div></div>`; return;
   }
-  if (left <= 3 && restT.lastBeep !== left) { restT.lastBeep = left; beep(660,.08); }
+  if (left <= 3 && restT.lastBeep !== left) { restT.lastBeep = left; if (!(typeof alertAudioPlaying === 'function' && alertAudioPlaying())) beep(660,.08); }
   el.innerHTML = `<div class="rbar" role="timer"><i style="width:${pct}%"></i><div class="rrow"><button class="rbtn" data-r="-15">−15</button><b>${Math.floor(left/60)}:${pad(left%60)}</b><button class="rbtn" data-r="15">+15</button><button class="rbtn primary" data-r="x">Omitir</button></div></div>`;
 }
 $('#rest').addEventListener('click', e => {
   if (e.target.closest('[data-hold]') && HOLD) return finishHold((Date.now() - HOLD.start) / 1000);
   const b = e.target.closest('[data-r]'); if (!b || !restT) return;
   if (b.dataset.r === 'x') return stopRest();
-  restT.end += (+b.dataset.r)*1000; restT.total = Math.max(restT.total + (+b.dataset.r), 1); drawRest();
+  restT.end += (+b.dataset.r)*1000; restT.total = Math.max(restT.total + (+b.dataset.r), 1); clearTimeout(restT.to); restT.to = setTimeout(drawRest, Math.max(0, restT.end - Date.now()) + 40); restT.lastBeep = null; drawRest();
+  if (typeof alertStart === 'function') alertStart();
 });
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && S.live) keepAwake(true); });
 
@@ -1618,6 +1628,7 @@ function renderMore(){
       <div class="chip-row">${[...excluded()].map(n => `<button class="chip small on" data-unexcl="${esc(n)}">${esc(meta(n).es)} ✕</button>`).join('') || '<span class="faint" style="font-size:14px">Ninguno</span>'}</div>
       <select class="field" id="exclAdd"><option value="">+ Añadir ejercicio…</option>${Object.keys(EX).filter(n => !excluded().has(n)).sort((a,b) => meta(a).es.localeCompare(meta(b).es)).map(n => `<option value="${esc(n)}">${esc(meta(n).es)}</option>`).join('')}</select>
     </section>
+    ${typeof renderRestAlert === 'function' ? renderRestAlert() : ''}
     <section class="card pad import">
       <h2>Historial de Hevy</h2>
       <p class="muted" style="margin:0;font-size:14px">En Hevy: Perfil → Ajustes → Exportar e importar datos → Exportar entrenamientos. Guarda el archivo en Archivos y súbelo aquí. Hazlo cada dos semanas: los días que ya apuntaste en esta app no se duplican.</p>
@@ -2015,7 +2026,7 @@ document.addEventListener('click', async e => {
   if (t.closest('#finish')) return sheetFinish();
   if (t.closest('#liveExit')) return sheetExit();
   if (t.closest('#finishYes')) { closeSheet(); return finishSession(); }
-  if (t.closest('#liveMenu')) return openSheet(`<h3 class="sheet-t">Sesión en curso</h3><div class="sheet-list"><button class="sheet-item" data-act="order" data-i="0">↕︎ Ordenar ejercicios</button></div><div id="discardZone" style="margin-top:14px"><button class="btn danger wide" id="discard">Descartar sesión</button></div>`);
+  if (t.closest('#liveMenu')) return openSheet(`<h3 class="sheet-t">Sesión en curso</h3><div class="sheet-list"><button class="sheet-item" data-others>👁 Ver otros entrenos</button><button class="sheet-item" data-act="order" data-i="0">↕︎ Ordenar ejercicios</button></div><div id="discardZone" style="margin-top:14px"><button class="btn danger wide" id="discard">Descartar sesión</button></div>`);
   if (t.closest('#discard')) { $('#discardZone').innerHTML = `<div class="confirm"><span>¿Borrar esta sesión sin guardarla?</span><button class="btn small danger" id="discardYes">Sí, borrar</button><button class="btn small ghost" id="discardNo">Cancelar</button></div>`; return; }
   if (t.closest('#discardNo')) { $('#discardZone').innerHTML = `<button class="btn danger wide" id="discard">Descartar sesión</button>`; return; }
   if (t.closest('#discardYes')) { closeSheet(); const id = S.live.id; S.live = null; delete S.app[id]; await IDB.del('sessions', id); stopRest(); keepAwake(false); S.tab = 'train'; render(); window.scrollTo({top:0}); toast('Entreno descartado'); return; }
