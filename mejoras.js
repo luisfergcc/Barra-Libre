@@ -25,7 +25,9 @@ function routineBoosts(items, key, ctx){
     const tot = ctx.pv[mu] || 0; if (tot < 6) continue;
     const days = ORDER.filter(k => (ctx.per[k][mu] || 0) >= 2);
     if (days.length !== 1 || days[0] !== key) continue;
-    const room = k => 11 - (ctx.per[k][mu] || 0), dest = ORDER.filter(k => k !== key && room(k) >= 2)
+    /* el destino ha de ser un día del mismo bloque (tren superior o inferior): no se pasa espalda a un día de pierna */
+    const UP = ['pe','es','ho','bi','tr'], half = k => Object.entries(ctx.per[k]).reduce((s, [m, v]) => s + (UP.includes(m) ? v : -v), 0) >= 0 ? 'u' : 'l', mine = UP.includes(mu) ? 'u' : 'l';
+    const room = k => 11 - (ctx.per[k][mu] || 0), dest = ORDER.filter(k => k !== key && room(k) >= 2 && half(k) === mine)
       .sort((a, b) => Object.values(ctx.per[a]).reduce((s, v) => s + v, 0) - Object.values(ctx.per[b]).reduce((s, v) => s + v, 0))[0];
     const destNames = dest ? ROUTINES[dest].ex : [];
     const cand = dest ? Object.keys(EX).filter(n => meta(n).mus[0] === mu && !NOVOL.has(meta(n).pat) && hasEq(n, eq) && !exc.has(n) && !destNames.includes(n) && !(kneeOn && meta(n).knee))

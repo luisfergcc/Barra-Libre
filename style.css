@@ -83,6 +83,9 @@ details.warm summary{list-style:none;padding:14px 16px;display:flex;justify-cont
 details.warm summary::-webkit-details-marker{display:none}
 details.warm ul{margin:0;padding:0 16px 12px;list-style:none;display:flex;flex-direction:column;gap:2px}
 details.warm li label{display:flex;gap:10px;align-items:flex-start;padding-block:6px;font-size:14px}
+details.warm li{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+details.warm li label{flex:1}
+details.warm li .ex-name{flex:none;min-width:36px;min-height:34px;font-size:14px;color:var(--accent);padding:4px 8px}
 details.warm li input{width:18px;height:18px;margin-top:1px;accent-color:var(--accent);flex:none}
 details.warm li small{color:var(--muted);display:block}
 details.warm h4{margin:6px 16px 4px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}

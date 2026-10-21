@@ -1,17 +1,17 @@
 /* =====================================================================
    BARRA LIBRE · perfiles, "¿Qué entrenamos?", cuestionario y consejos por objetivo
-   Cada perfil es una persona + un objetivo con su programa. El plan D1-D4 de Luis
+   Cada perfil es una persona + un objetivo con su programa. El plan D1-D5 de Luis
    es el perfil fijo 'me' y no se toca: los programas nuevos se generan aparte.
    ===================================================================== */
 const BASE_PLAN = {R: JSON.parse(JSON.stringify(ROUTINES)), O: ORDER.slice()};
-const DEF_PROFILE = {id:'me', name:'Luis', person:'me', builtin:true, q:{main:'hip', sec:'rehab', zone2:'rodilla', days:4, issues:['rodilla']}};
+const DEF_PROFILE = {id:'me', name:'LUIS NUEVO PLAN', person:'me', builtin:true, q:{main:'hip', sec:'rehab', zone2:'rodilla', days:5, issues:['rodilla']}};
 const STRENGTH_GOALS = ['hip','fuerza','grasa'];
 /* Objetivos para otras personas: ocultos salvo que se activen en Más */
 const EXTRA_GOALS = ['mayores','rehab','opos'];
 const goalShown = (k, keep) => kv('extraGoals', false) || !EXTRA_GOALS.includes(k) || k === keep;
 
 /* Los perfiles 'lv' (programa por niveles, quitado en 1.7.0) se ignoran: sus sesiones siguen en la copia, pero no se muestran */
-/* En el móvil de otra persona (detectado al importar su Hevy) el plan D1-D4 de Luis se oculta */
+/* En el móvil de otra persona (detectado al importar su Hevy) el plan D1-D5 de Luis se oculta */
 function profiles(){ const own = (kv('profiles', []) || []).filter(p => p && p.id !== 'me' && p.kind !== 'lv' && p.prog);
   return (kv('hideBuiltin', false) && own.length ? [] : [DEF_PROFILE]).concat(own); }
 const curProf = () => profiles().find(p => p.id === kv('profile', 'me')) || profiles()[0];
@@ -33,7 +33,7 @@ function applyProfile(){
   const p = curProf();
   for (const k in ROUTINES) delete ROUTINES[k];
   ORDER.length = 0;
-  if (p.builtin || !p.prog) { Object.assign(ROUTINES, JSON.parse(JSON.stringify(BASE_PLAN.R))); ORDER.push(...BASE_PLAN.O); PRR = {}; }
+  if (p.builtin || !p.prog) { Object.assign(ROUTINES, JSON.parse(JSON.stringify(BASE_PLAN.R))); ORDER.push(...BASE_PLAN.O); PRR = JSON.parse(JSON.stringify(PLAN_RR)); }
   else { Object.assign(ROUTINES, JSON.parse(JSON.stringify(p.prog.routines))); ORDER.push(...p.prog.order); PRR = p.prog.rr || {}; }
   if (typeof applyEdits === 'function') applyEdits();
   REC_CACHE = null;
@@ -46,7 +46,7 @@ async function switchProfile(id){
 /* ---------- barra de perfil en Entrenar ---------- */
 function profBar(){
   const p = curProf();
-  return `<div class="profbar"><button class="chip" data-home aria-label="Cambiar de perfil u objetivo">👤 <b>${esc(p.name)}</b> · ${p.builtin ? `Plan ${PLAN_VERSION} (D1-D4)` : p.kind === 'hevy' ? '📥 Rutinas de Hevy' : esc(goalLab(p.q))} <span class="faint">▾</span></button></div>`;
+  return `<div class="profbar"><button class="chip" data-home aria-label="Cambiar de perfil u objetivo">👤 <b>${esc(p.name)}</b> · ${p.builtin ? `Plan ${PLAN_VERSION} (D1-D5)` : p.kind === 'hevy' ? '📥 Rutinas de Hevy' : esc(goalLab(p.q))} <span class="faint">▾</span></button></div>`;
 }
 
 /* ---------- pantalla de inicio: ¿Qué entrenamos? ---------- */
@@ -57,7 +57,7 @@ function renderHome(){
     <section class="card pad stack" style="gap:10px">
       <h2>Seguir con</h2>
       <div class="sheet-list">${list.map(p => { const n = p.builtin ? 4 : p.prog.order.length;
-        return `<button class="prof-card ${p.id === cur.id ? 'on' : ''}" data-prof="${esc(p.id)}"><span class="pc-ic">${p.builtin ? '🏋️' : p.kind === 'hevy' ? '📥' : (GOALS[p.q.main] || {}).ic || '•'}</span><span class="pc-t"><b>${esc(p.name)}${p.builtin ? ' · tu plan' : ''}</b><small>${p.builtin ? `Hipertrofia + cuidar la rodilla · D1-D4 · plan ${PLAN_VERSION}` : p.kind === 'hevy' ? `Rehechas desde tus entrenos de Hevy · ${n} rutinas: ${esc(p.prog.order.map(k => p.prog.routines[k].title).join(', '))}` : `${esc(goalLab(p.q).replace(/^\S+ /, ''))}${secLab(p.q) ? ' + ' + esc(secLab(p.q)) : ''} · ${p.q.days} días · ${n} rutinas · ~${p.q.minutes} min`}</small></span><span class="faint">›</span></button>`; }).join('')}</div>
+        return `<button class="prof-card ${p.id === cur.id ? 'on' : ''}" data-prof="${esc(p.id)}"><span class="pc-ic">${p.builtin ? '🏋️' : p.kind === 'hevy' ? '📥' : (GOALS[p.q.main] || {}).ic || '•'}</span><span class="pc-t"><b>${esc(p.name)}${p.builtin ? ' · tu plan' : ''}</b><small>${p.builtin ? `Hipertrofia + cuidar la rodilla · D1-D5 · plan ${PLAN_VERSION}` : p.kind === 'hevy' ? `Rehechas desde tus entrenos de Hevy · ${n} rutinas: ${esc(p.prog.order.map(k => p.prog.routines[k].title).join(', '))}` : `${esc(goalLab(p.q).replace(/^\S+ /, ''))}${secLab(p.q) ? ' + ' + esc(secLab(p.q)) : ''} · ${p.q.days} días · ${n} rutinas · ~${p.q.minutes} min`}</small></span><span class="faint">›</span></button>`; }).join('')}</div>
     </section>
     <section class="card pad stack" style="gap:10px">
       <h2>Nuevo objetivo</h2>
@@ -160,11 +160,11 @@ function renderProfilesMore(){
   const list = profiles(), cur = curProf();
   return `<div class="stack" style="margin-bottom:var(--gap, 14px)"><section class="card pad stack" style="gap:10px">
     <header class="row" style="justify-content:space-between"><h2>Perfiles y objetivos</h2><button class="btn small" data-home>+ Nuevo</button></header>
-    <p class="muted" style="margin:0;font-size:14px">Cada perfil tiene su rutina y su historial. Los objetivos que crees "para mí" comparten tu historial con el plan D1-D4.</p>
-    <div class="sheet-list">${list.map(p => `<div class="sheet-item sess-row"><span><b>${esc(p.name)}${p.id === cur.id ? ' · activo' : ''}</b><small>${p.builtin ? `Plan ${PLAN_VERSION} · D1-D4` : p.kind === 'hevy' ? `Rutinas de Hevy · ${p.prog.order.length} rutinas · actualizadas ${esc(p.prog.created || '')}` : `${esc(goalLab(p.q))} · ${p.q.days} días · creado ${esc(p.created || '')}`}</small></span>
+    <p class="muted" style="margin:0;font-size:14px">Cada perfil tiene su rutina y su historial. Los objetivos que crees "para mí" comparten tu historial con el plan D1-D5.</p>
+    <div class="sheet-list">${list.map(p => `<div class="sheet-item sess-row"><span><b>${esc(p.name)}${p.id === cur.id ? ' · activo' : ''}</b><small>${p.builtin ? `Plan ${PLAN_VERSION} · D1-D5 + movilidad` : p.kind === 'hevy' ? `Rutinas de Hevy · ${p.prog.order.length} rutinas · actualizadas ${esc(p.prog.created || '')}` : `${esc(goalLab(p.q))} · ${p.q.days} días · creado ${esc(p.created || '')}`}</small></span>
       <span class="row" style="gap:6px">${p.id === cur.id ? '' : `<button class="btn small" data-prof="${esc(p.id)}">Usar</button>`}${p.builtin ? '' : `<button class="btn small ghost" ${p.kind === 'hevy' ? 'data-hevyredo' : `data-profredo="${esc(p.id)}"`}>Rehacer</button><button class="btn small ghost" data-profdel="${esc(p.id)}" aria-label="Borrar ${esc(p.name)}">✕</button>`}</span></div>`).join('')}</div>
     <div id="profDelZone"></div>
-    ${kv('hideBuiltin', false) ? `<label class="row muted" style="gap:8px;font-size:14px"><input type="checkbox" data-showbuiltin> Mostrar el plan D1-D4 de ejemplo</label>` : ''}
+    ${kv('hideBuiltin', false) ? `<label class="row muted" style="gap:8px;font-size:14px"><input type="checkbox" data-showbuiltin> Mostrar el plan D1-D5 de ejemplo</label>` : ''}
     <label class="row muted" style="gap:8px;font-size:14px"><input type="checkbox" data-extragoals ${kv('extraGoals', false) ? 'checked' : ''}> Mostrar objetivos para otras personas (mayores, rehabilitación y oposiciones)</label>
     <label class="row muted" style="gap:8px;font-size:14px"><input type="checkbox" data-askstart ${kv('askStart', false) ? 'checked' : ''}> Preguntar qué entrenamos al abrir la app</label>
   </section></div>`;
@@ -434,9 +434,26 @@ function deriveFromHevy(list){
   return {prog:{routines, order, rr, notes:[{t:`Rutinas rehechas a partir de ${pl(recent.length, 'entreno')} de Hevy: los ejercicios que repites, en tu orden y con tus series habituales. Puedes rehacerlas cuando importes de nuevo.`, ev:[]}], titleMap, sessMap, created:dayKey(new Date())},
     days, mins:Math.round(mins / 5) * 5, custom, newCustom, n:recent.length};
 }
-/* ¿Son las rutinas de Luis? Parecido de ejercicios con el plan D1-D4 */
+/* 2.0 (21/10/2026): un único usuario, «LUIS NUEVO PLAN». Se quitan los demás perfiles.
+   Las sesiones de perfiles que eran de Luis (rutinas de Hevy, objetivos «para mí») pasan a su historial; las de otras personas
+   quedan guardadas en el dispositivo y en la copia de seguridad, pero ocultas. Las ediciones de rutinas del plan anterior se descartan. */
+async function migratePlanV2(){
+  if (kv('planV2', false)) return;
+  const old = (kv('profiles', []) || []).filter(p => p && p.id !== 'me');
+  const mine = new Set(old.filter(p => p.person === 'me').map(p => p.id));
+  for (const s of Object.values(S.app)) if (s.p && mine.has(s.p)) { s.p = 'me'; try { await IDB.put('sessions', s); } catch (e) {} }
+  await setKv('profiles', []); await setKv('profile', 'me'); await setKv('hideBuiltin', false); await setKv('routineEdits', {});
+  const ex = kv('excluded', null); if (Array.isArray(ex)) await setKv('excluded', [...new Set(ex.concat(['Pull Up', 'Chin Up']))]);   // sin dominadas
+  await setKv('planV2', true);
+}
+/* ¿Son las rutinas de Luis? Parecido de ejercicios con el plan D1-D5 */
+const OLD_PLAN_EX = [
+  ['Incline Bench Press (Dumbbell)','Chest Press (Machine)','Chest Fly (Machine)','Lateral Raise (Dumbbell)','Triceps Pushdown','Overhead Triceps Extension (Cable)'],
+  ['Pull Up','Lat Pulldown (Cable)','Seated Row (Machine)','T Bar Row','Single Arm Lat Pulldown','Face Pull','Bicep Curl (Cable)','Cross Body Hammer Curl'],
+  ['Leg Press (Machine)','Romanian Deadlift (Barbell)','Leg Extension (Machine)','Seated Leg Curl (Machine)','Hip Abduction (Machine)','Hip Adduction (Machine)','Single Leg Standing Calf Raise (Machine)'],
+  ['Shoulder Press (Dumbbell)','Single Arm Lateral Raise (Cable)','Lateral Raise (Machine)','Chest Supported Reverse Fly (Dumbbell)','Incline Bench Press (Smith Machine)','Crunch (Machine)']];
 function looksLikeLuis(prog){
-  const base = BASE_PLAN.O.map(k => new Set(BASE_PLAN.R[k].ex));
+  const base = BASE_PLAN.O.map(k => new Set(BASE_PLAN.R[k].ex)).concat(OLD_PLAN_EX.map(a => new Set(a)));
   const sc = prog.order.map(k => { const s = new Set(prog.routines[k].ex); return Math.max(...base.map(b => { let i = 0; for (const x of s) if (b.has(x)) i++; return i / (s.size + b.size - i || 1); })); });
   return sc.length && median(sc) >= .4;
 }
@@ -450,7 +467,8 @@ async function saveHevyProfile(d, opts = {}){
   else if (curProf().id === id) applyProfile();
   return prof;
 }
-/* Tras importar: si las rutinas no son las de Luis, se crean y se usan; si ya existían, se actualizan */
+/* Tras importar: si son los entrenos de Luis (su plan actual o el anterior de 4 días) NO se crean rutinas: ya están en la app y el CSV
+   solo pone el historial (cargas, repeticiones, RIR). Si son de otra persona, se crean sus rutinas y se usan; si ya existían, se actualizan. */
 async function hevyAfterImport(){
   const d = deriveFromHevy(); if (!d || !d.prog.order.length) return '';
   const exists = (kv('profiles', []) || []).some(p => p.id === 'hevy');
@@ -461,6 +479,7 @@ async function hevyAfterImport(){
 }
 document.addEventListener('click', async e => {
   if (!e.target.closest('[data-hevyredo]')) return;
+  if (curProf().builtin && !(kv('profiles', []) || []).some(p => p && p.id === 'hevy')) { toast('Tu plan ya está en la app: el CSV de Hevy solo actualiza el historial.'); return; }
   const d = deriveFromHevy(); if (!d || !d.prog.order.length) { toast('Importa primero tu workouts.csv de Hevy (con al menos 2 entrenos).'); return; }
   await saveHevyProfile(d, {use:true}); rebuild(); S.tab = 'train'; S.home = false; render(); window.scrollTo({top:0});
   toast(`${pl(d.prog.order.length, 'rutina')} rehechas desde Hevy`);

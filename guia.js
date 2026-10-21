@@ -592,6 +592,7 @@ const GCUE = {
  'Seated Leg Curl (Machine)':'Sentado hace crecer más el femoral que tumbado.',
  'Overhead Triceps Extension (Cable)':'Tras nuca: el tríceps creció más que en polea alta.',
  'Lateral Raise (Machine)':'En máquina: ajusta el asiento para que el eje quede a la altura del hombro.',
+ 'Single Arm Lat Pulldown':'Con el tronco inclinado y el brazo bajando por delante, sustituye al pullover: más dorsal y menos bíceps.',
  'Wall Sit':'Isométrico: buena forma de cargar el cuádriceps con poca molestia de rodilla.',
  'Spanish Squat':'Banda detrás de las rodillas atada a algo fijo; échate atrás con las tibias verticales.',
  'Chest Supported Reverse Fly (Dumbbell)':'Apoya el pecho en un banco inclinado y abre los brazos hacia los lados.',

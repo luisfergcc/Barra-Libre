@@ -8,7 +8,7 @@
 
 /* ---------- 1. Otros entrenos (solo lectura) ---------- */
 const OV = {tab:'rut'};
-function ovSetsLine(it, sets, time){ return `${sets} × ${it.mins ? 'min' : time ? `${it.lo}-${it.hi} s` : `${it.lo}-${it.hi}`}`; }
+function ovSetsLine(it, sets, time){ return `${sets} × ${it.mins ? 'min' : time ? `${rg(it)} s` : `${rg(it)}`}`; }
 function sheetOthers(){
   const L = S.live;
   const rows = ORDER.map(k => { const r = ROUTINES[k], l = lastOfRoutine(k);
@@ -29,7 +29,7 @@ function sheetOtherRoutine(k){
   const r = ROUTINES[k]; if (!r) return sheetOthers();
   openSheet(`<div class="pk-head"><h3 class="sheet-t" style="margin:0">${esc(r.code)} · ${esc(r.title)}</h3><button class="btn small primary" data-sheetclose>${S.live ? 'Volver a mi entreno' : 'Cerrar'}</button></div>
     <button class="btn small" data-ovback style="margin:6px 0">‹ Otros entrenos</button>
-    <div class="stack" style="gap:8px">${r.ex.map(n => ovExRow(n, planSets(n), `${planSets(n)} series de ${meta(n).lo}-${meta(n).hi}${meta(n).time ? ' s' : ''} · `)).join('')}</div>`);
+    <div class="stack" style="gap:8px">${r.ex.map(n => ovExRow(n, planSets(n, 3, k), `${planSets(n, 3, k)} series de ${rg(meta(n))}${meta(n).time ? ' s' : ''} · `)).join('')}</div>`);
 }
 function sheetOtherSession(id){
   const x = S.all.find(s => s.id === id); if (!x) return sheetOthers();
@@ -58,7 +58,7 @@ const reMine = () => reAll()[curProf().id] || {};
 const reNoVol = n => !!meta(n).mins;
 function reDraft(k){
   const r = ROUTINES[k], gid = {}; (r.ss || []).forEach((g, gi) => g.forEach(n => gid[n] = 'ABCDEFGH'[gi]));
-  return {key:k, title:r.title, ex:r.ex.map(n => ({n, sets:Math.max(1, (r.sets && r.sets[n]) || planSets(n) || 3), ss:gid[n] || null})), dirty:false, view:'edit', gfrom:null};
+  return {key:k, title:r.title, ex:r.ex.map(n => ({n, sets:Math.max(1, (r.sets && r.sets[n]) || planSets(n, 3, k) || 3), ss:gid[n] || null})), dirty:false, view:'edit', gfrom:null};
 }
 function reNormSS(ex){   // una superserie solo vale si sus ejercicios están seguidos
   const by = {}; ex.forEach((e, i) => { if (e.ss) (by[e.ss] ||= []).push(i); });
@@ -79,7 +79,7 @@ function reShow(){
     <button class="btn wide" data-readd>+ Añadir ejercicio</button>
     <div id="reRA" style="margin-top:10px">${renderRA(items, RE.key, false, {draft:true})}</div>
     <div class="row" style="gap:8px;margin-top:12px"><button class="btn primary" style="flex:1" data-resave ${RE.ex.length ? '' : 'disabled'}>Guardar</button>${orig ? '<button class="btn ghost" data-rereset>Restaurar original</button>' : ''}</div>
-    <p class="faint" style="font-size:12px;margin:8px 0 0">${curProf().builtin ? 'Es un ajuste personal: el plan oficial D1-D4 del Proyecto no cambia. Si quieres que el cambio pase al plan, dímelo y lo actualizamos.' : 'Los cambios se guardan solo en este perfil.'}</p>`);
+    <p class="faint" style="font-size:12px;margin:8px 0 0">${curProf().builtin ? 'Es un ajuste personal: el plan oficial D1-D5 del Proyecto no cambia. Si quieres que el cambio pase al plan, dímelo y lo actualizamos.' : 'Los cambios se guardan solo en este perfil.'}</p>`);
 }
 function reOpen(k){ if (!ROUTINES[k]) return; RE = reDraft(k); reShow(); }
 function reAdd(n){ RE.ex.push({n, sets:reNoVol(n) ? 1 : (meta(n).knee ? 3 : 3), ss:null}); RE.dirty = true; reShow(); }
@@ -88,7 +88,7 @@ async function reSave(){
   const groups = {}; RE.ex.forEach(e => { if (e.ss) (groups[e.ss] ||= []).push(e.n); });
   const sets = {}; RE.ex.forEach(e => { if (!reNoVol(e.n)) sets[e.n] = e.sets; });
   const all = {...reAll()}, mine = {...(all[curProf().id] || {})};
-  mine[RE.key] = {title:(RE.title || '').trim() || ROUTINES[RE.key].title, ex:RE.ex.map(e => e.n), sets, ss:Object.values(groups)};
+  mine[RE.key] = {title:(RE.title || '').trim() || ROUTINES[RE.key].title, ex:RE.ex.map(e => e.n), sets, ss:Object.values(groups), v:PLAN_MAJOR};
   all[curProf().id] = mine; await setKv('routineEdits', all);
   const key = RE.key; RE = null; closeSheet(); applyProfile(); rebuild(); S.pick = key; render(); toast('Rutina guardada');
 }
@@ -100,6 +100,7 @@ async function reReset(){
 function applyEdits(){
   const mine = reMine();
   for (const k in mine) { const r = ROUTINES[k], e = mine[k]; if (!r || !e || !e.ex || !e.ex.length) continue;
+    if (e.v !== PLAN_MAJOR) continue;   // edición hecha sobre un plan anterior: no se aplica
     r.ex = e.ex.slice(); r.sets = {...(e.sets || {})}; r.ss = (e.ss || []).map(g => g.slice()); if (e.title) r.title = e.title; r.edited = true; }
 }
 /* Capa que intercepta los cierres mientras el editor está abierto (se ejecuta antes que los manejadores de app.js) */
@@ -160,7 +161,7 @@ async function raApply(spec){
   const groups = {}; d.ex.forEach(e => { if (e.ss) (groups[e.ss] ||= []).push(e.n); });
   const sets = {}; d.ex.forEach(e => { if (!reNoVol(e.n)) sets[e.n] = e.sets; });
   const all = {...reAll()}, mine = {...(all[curProf().id] || {})};
-  mine[key] = {title:d.title, ex:d.ex.map(e => e.n), sets, ss:Object.values(groups)}; all[curProf().id] = mine; await setKv('routineEdits', all);
+  mine[key] = {title:d.title, ex:d.ex.map(e => e.n), sets, ss:Object.values(groups), v:PLAN_MAJOR}; all[curProf().id] = mine; await setKv('routineEdits', all);
   applyProfile(); rebuild(); S.pick = key; render(); toast('Mejora aplicada. Puedes deshacerla en Editar rutina → Restaurar original.');
 }
 document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-raop]'); if (b && !RE) raApply(b.dataset.raop); });

@@ -1,5 +1,5 @@
 /* =====================================================================
-   BARRA LIBRE · datos fijos (plan v1.5)
+   BARRA LIBRE · datos fijos (plan v2.0)
    Si cambia el plan, se actualiza aquí: rutinas, calentamientos y ejercicios.
    ===================================================================== */
 
@@ -207,31 +207,76 @@ const BW_LOAD = {'Pull Up':1, 'Chin Up':1, 'Chest Dip':1, 'Push Up':0.65, 'Assis
 const PLATES = [25, 20, 15, 10, 5, 2.5, 1.25];
 const SKIP = new Set(['Walking','Stretching','Treadmill Incline Walk']);
 
-/* Rutinas del plan (nombres de Hevy, en orden) */
+/* Rutinas del plan v2.0 (nombres de Hevy, en orden).
+   sets = series de cada ejercicio (si no aparece, 3). reps = rango propio del plan (si no aparece, el del ejercicio). */
 const ROUTINES = {
  d1:{code:'D1', title:'Pecho · Hombro · Tríceps', warm:'short', knee:true,
-     ex:['Incline Bench Press (Dumbbell)','Chest Press (Machine)','Chest Fly (Machine)','Lateral Raise (Dumbbell)','Triceps Pushdown','Overhead Triceps Extension (Cable)'],
-     sets:{'Overhead Triceps Extension (Cable)':4}},
- d2:{code:'D2', title:'Espalda · Bíceps', warm:'short',
-     ex:['Pull Up','Lat Pulldown (Cable)','Seated Row (Machine)','T Bar Row','Single Arm Lat Pulldown','Face Pull','Bicep Curl (Cable)','Cross Body Hammer Curl']},
- d3:{code:'D3', title:'Pierna', warm:'full',
-     ex:['Leg Press (Machine)','Romanian Deadlift (Barbell)','Leg Extension (Machine)','Seated Leg Curl (Machine)','Hip Abduction (Machine)','Hip Adduction (Machine)','Single Leg Standing Calf Raise (Machine)'],
-     sets:{'Leg Press (Machine)':4,'Leg Extension (Machine)':4,'Seated Leg Curl (Machine)':4,'Hip Adduction (Machine)':2}},
- d4:{code:'D4', title:'Hombro · Pecho', warm:'short', knee:true,
-     ex:['Shoulder Press (Dumbbell)','Single Arm Lateral Raise (Cable)','Lateral Raise (Machine)','Chest Supported Reverse Fly (Dumbbell)','Incline Bench Press (Smith Machine)','Crunch (Machine)'],
-     /* superseries: laterales en máquina + pájaros (deltoides lateral y posterior, no compiten) */
-     ss:[['Lateral Raise (Machine)','Chest Supported Reverse Fly (Dumbbell)']]}
+     note:'Después del calentamiento corto, bloque de rodilla (5 min). Laterales: sube a 15-20 reps antes de cambiar de peso.',
+     ex:['Incline Bench Press (Dumbbell)','Chest Press (Machine)','Chest Fly (Machine)','Lateral Raise (Dumbbell)','Overhead Triceps Extension (Cable)','Triceps Rope Pushdown'],
+     sets:{'Incline Bench Press (Dumbbell)':4,'Chest Press (Machine)':3,'Chest Fly (Machine)':2,'Lateral Raise (Dumbbell)':4,'Overhead Triceps Extension (Cable)':4,'Triceps Rope Pushdown':2}},
+ d2:{code:'D2', title:'Espalda · Bíceps', warm:'short', knee:true,
+     note:'Sin dominadas (tu preferencia). Al final, bloque de tronco: Pallof 2 × 10 por lado y dead bug 2 × 8 por lado.',
+     ex:['Lat Pulldown (Cable)','Single Arm Lat Pulldown','Seated Row (Machine)','T Bar Row','Face Pull','Bicep Curl (Cable)','Cross Body Hammer Curl','Pallof Press','Dead Bug'],
+     sets:{'Lat Pulldown (Cable)':3,'Single Arm Lat Pulldown':3,'Seated Row (Machine)':3,'T Bar Row':2,'Face Pull':3,'Bicep Curl (Cable)':3,'Cross Body Hammer Curl':3,'Pallof Press':2,'Dead Bug':2}},
+ d3:{code:'D3', title:'Pierna · Cuádriceps', warm:'full',
+     note:'Split squat: paso largo (≈ la longitud de tu pierna), tronco vertical y 1-2 series de aproximación ligeras; pasa a búlgara tras 3 semanas en verde. ◆ = RIR 2 (deja 2 reps en reserva). Gemelo con pausa de 1-2 s abajo.',
+     ex:['Split Squat (Dumbbell)','Leg Press (Machine)','Leg Extension (Machine)','Hip Abduction (Machine)','Single Leg Standing Calf Raise (Machine)','Cable Crunch'],
+     sets:{'Split Squat (Dumbbell)':3,'Leg Press (Machine)':3,'Leg Extension (Machine)':4,'Hip Abduction (Machine)':3,'Single Leg Standing Calf Raise (Machine)':3,'Cable Crunch':3}},
+ d4:{code:'D4', title:'Hombro · Pecho', warm:'short',
+     note:'Press banca: si no hay barra libre, inclinado en Smith. Plancha lateral 2 × 20-30 s por lado.',
+     ex:['Bench Press (Barbell)','Shoulder Press (Dumbbell)','Single Arm Lateral Raise (Cable)','Chest Supported Reverse Fly (Dumbbell)','Cable Crunch','Side Plank'],
+     sets:{'Bench Press (Barbell)':3,'Shoulder Press (Dumbbell)':3,'Single Arm Lateral Raise (Cable)':4,'Chest Supported Reverse Fly (Dumbbell)':3,'Cable Crunch':3,'Side Plank':2}},
+ d5:{code:'D5', title:'Pierna · Parte de atrás', warm:'full',
+     note:'Las 2 primeras semanas: rumano 3 series y curl 3. El curl pasa a 5 series tras 3 semanas sin molestias. La elevación de tibial es opcional (no hay ensayo que la respalde). Prensa a una pierna con RIR 3.',
+     ex:['Romanian Deadlift (Barbell)','Seated Leg Curl (Machine)','Single Leg Press (Machine)','Hip Abduction (Machine)','Hip Adduction (Machine)','Seated Calf Raise','Tibialis Raise'],
+     intro:{'Romanian Deadlift (Barbell)':3,'Seated Leg Curl (Machine)':3},
+     sets:{'Romanian Deadlift (Barbell)':4,'Seated Leg Curl (Machine)':4,'Single Leg Press (Machine)':2,'Hip Abduction (Machine)':2,'Hip Adduction (Machine)':2,'Seated Calf Raise':3,'Tibialis Raise':2}},
+ /* Fuera de la rotación: se empiezan desde Entrenar → Movilidad */
+ ma:{code:'MA', title:'Movilidad A · antes de correr (6 min)', warm:null,
+     ex:['Leg Swing (Forward)','Leg Swing (Lateral)','Lunge with Rotation','Glute Bridge','Hip 90/90 Switch'],
+     sets:{'Leg Swing (Forward)':1,'Leg Swing (Lateral)':1,'Lunge with Rotation':1,'Glute Bridge':1,'Hip 90/90 Switch':1},
+     note:'Antes: 2 min de caminata rápida.'},
+ mb:{code:'MB', title:'Movilidad B · cadera y lumbar (10 min)', warm:null,
+     ex:['Hip 90/90 Switch','Hip Flexor Stretch','Frog Stretch','Cat Cow','Thoracic Rotation','Deep Squat Hold',"Child's Pose"],
+     sets:{'Hip 90/90 Switch':1,'Hip Flexor Stretch':2,'Frog Stretch':1,'Cat Cow':1,'Thoracic Rotation':2,'Deep Squat Hold':1,"Child's Pose":1}}
 };
-const ORDER = ['d1','d2','d3','d4'];
+const ORDER = ['d1','d2','d3','d4','d5'];
+/* Rangos de repeticiones, descanso (s) y, si hace falta, el aviso de dolor de este plan: [mín, máx, descanso, 0] (descanso 0 = el del ejercicio) */
+const PLAN_RR = {
+ 'Incline Bench Press (Dumbbell)':[6,10,150], 'Chest Press (Machine)':[8,12,120], 'Chest Fly (Machine)':[12,15,90], 'Lateral Raise (Dumbbell)':[12,20,75],
+ 'Overhead Triceps Extension (Cable)':[10,15,90], 'Triceps Rope Pushdown':[12,15,75],
+ 'Lat Pulldown (Cable)':[8,12,120], 'Single Arm Lat Pulldown':[10,14,90], 'Seated Row (Machine)':[8,12,120], 'T Bar Row':[8,12,120], 'Face Pull':[12,15,75],
+ 'Bicep Curl (Cable)':[8,12,90], 'Cross Body Hammer Curl':[8,12,90], 'Pallof Press':[10,10,45], 'Dead Bug':[8,8,45],
+ 'Split Squat (Dumbbell)':[8,10,120], 'Leg Press (Machine)':[8,12,150], 'Leg Extension (Machine)':[10,12,90], 'Hip Abduction (Machine)':[12,15,75],
+ 'Single Leg Standing Calf Raise (Machine)':[10,15,75], 'Cable Crunch':[12,15,75],
+ 'Bench Press (Barbell)':[6,8,150], 'Shoulder Press (Dumbbell)':[8,12,120], 'Single Arm Lateral Raise (Cable)':[12,20,75], 'Chest Supported Reverse Fly (Dumbbell)':[12,15,75], 'Side Plank':[20,30,45],
+ 'Romanian Deadlift (Barbell)':[6,10,150], 'Seated Leg Curl (Machine)':[10,12,90], 'Single Leg Press (Machine)':[10,12,120], 'Hip Adduction (Machine)':[12,15,75],
+ 'Seated Calf Raise':[10,15,75], 'Tibialis Raise':[15,20,45],
+ 'Hip 90/90 Switch':[8,8,0], 'Hip Flexor Stretch':[30,45,0], 'Frog Stretch':[10,10,0], 'Cat Cow':[8,8,0], 'Thoracic Rotation':[8,8,0], 'Deep Squat Hold':[45,60,0], "Child's Pose":[45,45,0],
+ 'Leg Swing (Forward)':[10,10,0], 'Leg Swing (Lateral)':[10,10,0], 'Lunge with Rotation':[5,5,0], 'Glute Bridge':[10,10,0]
+};
 
 const WARM = {
- short:['Caminata o bici suave · 2 min','90/90 de cadera · 6 cambios','Flexor de cadera en zancada · 20 s por lado','Puente de glúteo · 10 reps','Pull-apart + rotación externa · 15 + 10 por brazo'],
- full:['Bici o caminata suave · 3 min','90/90 de cadera · 8 cambios','Flexor de cadera en zancada · 30 s por lado','Rana en cuadrupedia · 10 balanceos','Puente de glúteo · 12 reps','Pasos laterales con mini banda · 10 por lado','Sentadilla isométrica en pared · 2 × 30-45 s','Sentadilla goblet con pausa · 5 reps','Extensión de cuádriceps ligera · 2 × 15']
+ short:['Caminata o bici suave · 2 min','90/90 de cadera · 6 cambios','Flexor de cadera en zancada · 20 s por lado','Puente de glúteo · 10 reps','Hombro: separaciones con banda · 15 reps + rotación externa con banda o polea · 10 por brazo'],
+ full:['Bici o caminata suave · 3 min','90/90 de cadera con cambios · 8 cambios','Flexor de cadera en zancada (aprieta el glúteo de la pierna de atrás) · 30 s por lado','Rana en cuadrupedia · 10 balanceos','Puente de glúteo con 2 s arriba · 12 reps','Rotación externa de cadera con banda · 2 × 12-15 por lado','Sentadilla isométrica en pared, al ángulo en verde · 2 × 30-45 s','Sentadilla goblet con pausa (mancuerna ligera) · 5 reps']
 };
-const KNEE_BLOCK = ['Sentadilla isométrica en pared · 2 × 45 s','Extensión terminal de rodilla · 2 × 15 por pierna','Bajada lenta desde escalón · 2 × 8 por pierna'];
-const PLAN_VERSION = 'v1.5';
+/* Bloque de rodilla (5 min, D1 y D2): ligero, debes terminar como si no hubieras hecho nada */
+const KNEE_BLOCK = ['Sentadilla isométrica en pared · 2 × 45 s','Extensión terminal de rodilla (banda o polea baja) · 2 × 15 por pierna','Bajada lenta desde escalón de 15-20 cm · 2 × 8 por pierna'];
+const PLAN_VERSION = 'v2.0';
 /* Series fijadas por el plan (si no aparece, 3) */
-const planSets = (n, def = 3) => { for (const k of ORDER) { const st = ROUTINES[k].sets; if (st && st[n]) return st[n]; } return def; };
+const planSets = (n, def = 3, key = null) => {
+  if (key && ROUTINES[key] && ROUTINES[key].ex.includes(n)) return (ROUTINES[key].sets && ROUTINES[key].sets[n]) || def;
+  for (const k of ORDER) { const st = ROUTINES[k].sets; if (st && st[n]) return st[n]; }
+  return def;
+};
+/* Movilidad A y B no cuentan como sesión de pesas */
+/* ◆ Ejercicios que cargan la rodilla: RIR 2 (la prensa a una pierna, RIR 3) */
+const KNEE_RIR = {'Split Squat (Dumbbell)':2,'Leg Press (Machine)':2,'Leg Extension (Machine)':2,'Single Leg Press (Machine)':3};
+/* Rango de repeticiones para mostrar: «10» si mín y máx coinciden */
+const rg = m => m.lo === m.hi ? `${m.lo}` : `${m.lo}-${m.hi}`;
+const MOB_KEYS = ['ma','mb'];
+/* Las ediciones de rutinas que hace el usuario valen para la versión mayor del plan en que se hicieron (v2.x) */
+const PLAN_MAJOR = PLAN_VERSION.split('.')[0];
 
 /* =====================================================================
    CIENCIA: base de estudios (revisada el 10/10/2026)
@@ -278,7 +323,7 @@ const EVIDENCE = [
  {id:'bricca19', tema:'rodilla', cita:'Bricca y col.', rev:'British Journal of Sports Medicine', year:2019, tipo:'Revisión sistemática',
   hallazgo:'El ejercicio que carga la rodilla no parece dañar el cartílago en personas con riesgo de artrosis o con artrosis (evidencia de calidad baja).', regla:'Cargar la rodilla de forma progresiva no es el enemigo; el dolor que empeora al día siguiente sí es la señal para ajustar.'},
  {id:'afonso21', tema:'movilidad', cita:'Afonso y col.', rev:'Healthcare', year:2021, tipo:'Metaanálisis',
-  hallazgo:'El entrenamiento de fuerza mejoró el rango de movimiento lo mismo que los estiramientos.', regla:'Ejercicios con recorrido largo (rumano, sentadilla a cajón cada vez más baja, hip thrust) también te dan movilidad de cadera.'},
+  hallazgo:'El entrenamiento de fuerza mejoró el rango de movimiento lo mismo que los estiramientos.', regla:'Ejercicios con recorrido largo (rumano, sentadilla a cajón cada vez más baja, split squat) también te dan movilidad de cadera.'},
  {id:'lenhart14', tema:'correr', cita:'Lenhart y col.', rev:'Medicine & Science in Sports & Exercise', year:2014, tipo:'Estudio biomecánico',
   hallazgo:'Aumentar la cadencia un 10 % redujo la fuerza máxima sobre la articulación femoropatelar alrededor de un 14 %.', regla:'Al trotar, pasos un poco más cortos y rápidos (+5-10 % de cadencia).'},
  {id:'nielsen14', tema:'correr', cita:'Nielsen y col.', rev:'Journal of Orthopaedic & Sports Physical Therapy', year:2014, tipo:'Estudio de cohorte',
