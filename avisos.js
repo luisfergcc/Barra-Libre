@@ -1,5 +1,5 @@
 /* =====================================================================
-   BARRA LIBRE · aviso de fin de descanso con la app en segundo plano (1.8.0)
+   BARRA LIBRE · aviso de fin de descanso con la app en segundo plano (1.8.0, ajustado en 1.9.1)
    Un iPhone congela el JavaScript de una web cuando sales de ella, así que un temporizador normal no puede sonar.
    Lo que sí sigue funcionando con la pantalla bloqueada es el AUDIO: durante el descanso se reproduce un archivo de sonido
    generado aquí mismo, silencioso, con los pitidos (3-2-1 y el final) ya puestos en su sitio. Lo reproduce el sistema,
@@ -8,7 +8,11 @@
    No hay forma de avisar si cierras la app del todo (deslizarla hacia arriba en el selector de apps).
    ===================================================================== */
 const RA = {el:null, url:null, on:false};
-const restAudioOn = () => kv('restAudio', true);
+/* 1.9.1: por defecto los pitidos se MEZCLAN con tu música (Spotify no se corta). El archivo de sonido que suena con la pantalla bloqueada
+   obliga a iOS a pausar la música, así que es opcional y viene apagado. */
+const restAudioOn = () => kv('restLock', false);
+const audioMode = t => { try { if (navigator.audioSession) navigator.audioSession.type = t; } catch (e) {} };
+audioMode('ambient');
 const restNotifOn = () => kv('restNotif', false) && 'Notification' in window && Notification.permission === 'granted';
 
 /* WAV mono de 8 bits y 8 kHz: ligero (≈ 8 KB por segundo de descanso) y suficiente para tonos de 660-1319 Hz */
@@ -34,6 +38,7 @@ function alertStart(){
       if (!RA.el) { RA.el = new Audio(); RA.el.setAttribute('playsinline', ''); RA.el.preload = 'auto'; }
       if (RA.url) URL.revokeObjectURL(RA.url);
       RA.url = URL.createObjectURL(restWav(left));
+      audioMode('playback');
       RA.el.src = RA.url; RA.el.currentTime = 0; RA.el.volume = 1;
       const p = RA.el.play(); RA.on = true;
       if (p && p.catch) p.catch(() => { RA.on = false; });
@@ -44,7 +49,7 @@ function alertStart(){
 }
 function alertStop(){
   try { if (RA.el) { RA.el.pause(); RA.el.removeAttribute('src'); RA.el.load(); } } catch (e) {}
-  RA.on = false; swSend({t:'cancel'});
+  RA.on = false; audioMode('ambient'); swSend({t:'cancel'});
   navigator.serviceWorker && navigator.serviceWorker.getRegistration().then(r => r && r.getNotifications({tag:'rest'}).then(l => l.forEach(n => n.close()))).catch(() => {});
 }
 /* El audio ya hace los pitidos: la app no repite los suyos cuando está sonando el archivo */
@@ -67,16 +72,16 @@ function renderRestAlert(){
   const canN = 'Notification' in window, perm = canN ? Notification.permission : 'denied';
   return `<section class="card pad stack" style="gap:10px">
     <h2>Aviso de fin de descanso</h2>
-    <p class="muted" style="margin:0;font-size:14px">Para que suene aunque bloquees el móvil o estés en otra app. Funciona si abres Barra Libre desde el icono de la pantalla de inicio.</p>
-    <label class="row" style="gap:8px;font-size:14px;align-items:flex-start"><input type="checkbox" data-restaudio ${restAudioOn() ? 'checked' : ''}> <span>Sonido con la pantalla bloqueada o en otra app <span class="faint">· pitidos 3-2-1 y final; usa el volumen del móvil</span></span></label>
+    <p class="muted" style="margin:0;font-size:14px">Con la app abierta y la pantalla encendida (la app la mantiene encendida durante el entreno) los pitidos 3-2-1 y final suenan <b>mezclados con tu música</b>: Spotify no se corta. Usa el volumen del móvil y no con el interruptor de silencio activado.</p>
+    <label class="row" style="gap:8px;font-size:14px;align-items:flex-start"><input type="checkbox" data-restaudio ${restAudioOn() ? 'checked' : ''}> <span>Sonar también con la pantalla bloqueada o en otra app <span class="faint">· <b>pausa tu música</b> mientras dura el descanso (límite de iOS)</span></span></label>
     <label class="row" style="gap:8px;font-size:14px;align-items:flex-start"><input type="checkbox" data-restnotif ${restNotifOn() ? 'checked' : ''} ${canN ? '' : 'disabled'}> <span>Notificación al terminar ${canN ? (perm === 'denied' ? '<span class="faint">· bloqueadas en los ajustes del móvil</span>' : '') : '<span class="faint">· este navegador no las permite</span>'}</span></label>
-    <button class="btn" data-resttest>Probar ahora (10 s): bloquea el móvil</button>
-    <p class="faint" style="font-size:12px;margin:0">Límite de iOS: si cierras la app del todo (la deslizas hacia arriba en el selector de apps), no puede avisar. Déjala abierta o en segundo plano. Mientras dura el descanso puede aparecer un reproductor en la pantalla de bloqueo.</p>
+    <button class="btn" data-resttest>Probar ahora (10 s)</button>
+    <p class="faint" style="font-size:12px;margin:0">Límite de iOS: una web no puede sonar con la pantalla bloqueada y a la vez mezclarse con Spotify (eso solo lo hacen las apps nativas como Hevy). Si cierras la app del todo, tampoco puede avisar. Con la opción de pantalla bloqueada activada puede aparecer un reproductor en la pantalla de bloqueo.</p>
   </section>`;
 }
 document.addEventListener('change', async e => {
   const el = e.target; if (!el.matches) return;
-  if (el.matches('[data-restaudio]')) { await setKv('restAudio', el.checked); toast(el.checked ? 'Sonará con la pantalla bloqueada' : 'Solo sonará con la app abierta'); }
+  if (el.matches('[data-restaudio]')) { await setKv('restLock', el.checked); toast(el.checked ? 'Sonará con la pantalla bloqueada, pero pausará tu música' : 'Los pitidos se mezclan con tu música (app abierta)'); }
   if (el.matches('[data-restnotif]')) {
     if (!el.checked) { await setKv('restNotif', false); toast('Notificaciones desactivadas'); return; }
     let p = 'denied'; try { p = await Notification.requestPermission(); } catch (er) {}
@@ -84,4 +89,4 @@ document.addEventListener('change', async e => {
     toast(p === 'granted' ? 'Notificaciones activadas' : 'No se concedió el permiso. Actívalo en Ajustes del móvil → Barra Libre → Notificaciones.');
   }
 });
-document.addEventListener('click', e => { if (e.target.closest && e.target.closest('[data-resttest]')) { startRest(10); toast('Bloquea el móvil ahora: sonará en 10 s'); } });
+document.addEventListener('click', e => { if (e.target.closest && e.target.closest('[data-resttest]')) { startRest(10); toast(restAudioOn() ? 'Bloquea el móvil: sonará en 10 s' : 'Sonará en 10 s mezclado con tu música'); } });
