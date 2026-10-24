@@ -446,6 +446,19 @@ async function migratePlanV2(){
   const ex = kv('excluded', null); if (Array.isArray(ex)) await setKv('excluded', [...new Set(ex.concat(['Pull Up', 'Chin Up']))]);   // sin dominadas
   await setKv('planV2', true);
 }
+/* 1.9.2: «Dominada» (nombre en español de Hevy) también queda fuera de las sugerencias */
+async function migrate192(){
+  if (kv('fix192', false)) return;
+  const ex = kv('excluded', null); if (Array.isArray(ex) && !ex.includes('Dominada')) await setKv('excluded', ex.concat(['Dominada']));
+  /* La duración de entrenos antiguos que se terminaron mucho después de la última serie se calcula con esa última serie */
+  for (const x of Object.values(S.app)) if (x.status === 'done' && x.end && x.start) {
+    const ats = (x.ex || []).flatMap(e => (e.sets || []).filter(t => t.done && t.at).map(t => t.at)), last = ats.length ? Math.max(...ats) : 0;
+    if (last && x.end - last > 20 * 60000) { x.end = last + 2 * 60000; try { await IDB.put('sessions', x); } catch (e) {} }
+  }
+  /* Un segundo gimnasio para las máquinas que pesan distinto (se puede renombrar y ajustar en Más) */
+  if (S.gyms.length === 1) { const g = {id:'g-2', name:'Gimnasio 2', eq:S.gyms[0].eq.slice()}; S.gyms.push(g); try { await IDB.put('gyms', g); } catch (e) {} }
+  await setKv('fix192', true);
+}
 /* ¿Son las rutinas de Luis? Parecido de ejercicios con el plan D1-D5 */
 const OLD_PLAN_EX = [
   ['Incline Bench Press (Dumbbell)','Chest Press (Machine)','Chest Fly (Machine)','Lateral Raise (Dumbbell)','Triceps Pushdown','Overhead Triceps Extension (Cable)'],

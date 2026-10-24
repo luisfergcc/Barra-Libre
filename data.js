@@ -26,7 +26,7 @@ const GYM_PRESETS = {
 /* Ejercicios con su nombre de Hevy.
    [español, músculos principales, reps mín, reps máx, carga la rodilla, descanso (s), patrón, material necesario] */
 const EX = {
- 'Incline Bench Press (Dumbbell)':['Press inclinado mancuernas','pe ho',8,12,0,150,'press_inc',['db','bench']],
+ 'Incline Bench Press (Dumbbell)':['Press inclinado mancuernas','pe ho tr',8,12,0,120,'press_inc',['db','bench']],
  'Bench Press (Barbell)':['Press banca con barra','pe tr',6,10,0,150,'press_h',['bb','bench']],
  'Bench Press (Dumbbell)':['Press plano mancuernas','pe tr',8,12,0,150,'press_h',['db','bench']],
  'Chest Press (Machine)':['Press plano en máquina','pe tr',8,12,0,120,'press_h',['cpress']],
@@ -39,21 +39,21 @@ const EX = {
  'Incline Chest Fly (Dumbbell)':['Aperturas inclinadas','pe',10,15,0,90,'fly',['db','bench']],
  'Chest Dip':['Fondos','pe tr',6,12,0,120,'press_h',['dip']],
  'Seated Dip Machine':['Fondos en máquina','tr pe',8,12,0,90,'tri',['dipm']],
- 'Lateral Raise (Dumbbell)':['Elevaciones laterales','ho',12,15,0,75,'lat_raise',['db']],
+ 'Lateral Raise (Dumbbell)':['Elevaciones laterales','ho',12,15,0,90,'lat_raise',['db']],
  'Lateral Raise (Machine)':['Laterales en máquina','ho',12,15,0,75,'lat_raise',['latrm']],
- 'Single Arm Lateral Raise (Cable)':['Lateral unilateral en polea','ho',12,15,0,60,'lat_raise',['cable']],
+ 'Single Arm Lateral Raise (Cable)':['Lateral unilateral en polea','ho',12,15,0,90,'lat_raise',['cable']],
  'Lateral Raise (Band)':['Elevaciones laterales con banda','ho',15,20,0,60,'lat_raise',['band']],
- 'Shoulder Press (Dumbbell)':['Press militar mancuernas','ho tr',8,12,0,150,'press_v',['db','bench']],
- 'Chest Supported Reverse Fly (Dumbbell)':['Pájaros en banco inclinado','ho es',15,20,0,75,'rear',['db','bench']],
+ 'Shoulder Press (Dumbbell)':['Press militar mancuernas','ho tr',8,12,0,120,'press_v',['db','bench']],
+ 'Chest Supported Reverse Fly (Dumbbell)':['Pájaros en banco inclinado','ho es',15,20,0,90,'rear',['db','bench']],
  'Reverse Fly (Dumbbell)':['Pájaros con mancuernas','ho es',12,20,0,60,'rear',['db']],
  'Reverse Fly Single Arm (Cable)':['Pájaro unilateral en polea','ho',15,20,0,60,'rear',['cable']],
  'Rear Delt Reverse Fly (Machine)':['Pájaros en máquina','ho',12,15,0,75,'rear',['rearm']],
- 'Face Pull':['Face pull','ho es',10,12,0,75,'rear',['cable']],
+ 'Face Pull':['Face pull','ho es',10,12,0,90,'rear',['cable']],
  'Band Pull Apart':['Separaciones con banda','ho es',15,25,0,45,'rear',['band']],
  'Triceps Pushdown':['Tríceps en polea alta','tr',10,15,0,75,'tri',['cable']],
- 'Triceps Rope Pushdown':['Tríceps con cuerda','tr',10,15,0,75,'tri',['cable']],
+ 'Triceps Rope Pushdown':['Tríceps con cuerda','tr',10,15,0,90,'tri',['cable']],
  'Single Arm Triceps Pushdown (Cable)':['Tríceps unilateral en polea','tr',10,15,0,60,'tri',['cable']],
- 'Overhead Triceps Extension (Cable)':['Tríceps tras nuca en polea','tr',10,12,0,75,'tri',['cable']],
+ 'Overhead Triceps Extension (Cable)':['Tríceps tras nuca en polea','tr',10,12,0,90,'tri',['cable']],
  'Overhead Triceps Extension (Dumbbell)':['Tríceps tras nuca con mancuerna','tr',10,12,0,75,'tri',['db']],
  'Triceps Extension (Cable)':['Extensión de tríceps en polea','tr',10,12,0,75,'tri',['cable']],
  'Skullcrusher (Barbell)':['Press francés con barra','tr',8,12,0,90,'tri',['bb','bench']],
@@ -61,47 +61,47 @@ const EX = {
  'Bench Dip':['Fondos en banco','tr',10,15,0,75,'tri',['bench']],
  'Pull Up':['Dominadas','es bi',5,10,0,150,'pull_v',['pull']],
  'Lat Pulldown (Cable)':['Jalón al pecho','es bi',8,12,0,120,'pull_v',['latm']],
- 'Single Arm Lat Pulldown':['Jalón unilateral','es',10,12,0,90,'pull_v',['cable']],
+ 'Single Arm Lat Pulldown':['Jalón unilateral','es bi',10,12,0,120,'pull_v',['cable']],
  'Straight Arm Lat Pulldown (Cable)':['Jalón con brazos rectos','es',10,12,0,75,'pull_v',['cable']],
  'Seated Row (Machine)':['Remo en máquina sentado','es bi',10,12,0,120,'row',['rowm']],
  'Iso-Lateral Row (Machine)':['Remo iso-lateral','es bi',8,12,0,120,'row',['rowm']],
  'Iso-Lateral Low Row':['Remo bajo iso-lateral','es bi',8,12,0,120,'row',['rowm']],
  'Seated Cable Row - V Grip (Cable)':['Remo en polea agarre V','es bi',8,12,0,120,'row',['cable']],
- 'T Bar Row':['Remo en T','es bi',8,12,0,150,'row',['tbar']],
+ 'T Bar Row':['Remo en T','es bi',8,12,0,120,'row',['tbar']],
  'Chest Supported Incline Row (Dumbbell)':['Remo inclinado apoyado','es bi',8,12,0,120,'row',['db','bench']],
  'Dumbbell Row':['Remo con mancuerna','es bi',8,12,0,90,'row',['db','bench']],
  'Back Extension (Hyperextension)':['Hiperextensiones','gl fe',10,15,0,90,'hinge',['hyper']],
- 'Bicep Curl (Cable)':['Curl Z en polea','bi',10,12,0,75,'curl',['cable']],
+ 'Bicep Curl (Cable)':['Curl Z en polea','bi',10,12,0,90,'curl',['cable']],
  'Hammer Curl (Cable)':['Curl martillo en polea','bi',10,12,0,75,'curl',['cable']],
- 'Cross Body Hammer Curl':['Curl martillo cruzado','bi',10,12,0,75,'curl',['db']],
+ 'Cross Body Hammer Curl':['Curl martillo cruzado','bi',10,12,0,90,'curl',['db']],
  'Bicep Curl (Dumbbell)':['Curl con mancuernas','bi',10,12,0,75,'curl',['db']],
  'Preacher Curl (Barbell)':['Curl predicador','bi',8,12,0,75,'curl',['bb','bench']],
  'Behind the Back Curl (Cable)':['Curl tras la espalda','bi',10,12,0,60,'curl',['cable']],
  'Romanian Deadlift (Barbell)':['Peso muerto rumano','fe gl',8,12,1,150,'hinge',['bb']],
  'Romanian Deadlift (Dumbbell)':['Peso muerto rumano mancuernas','fe gl',8,12,1,120,'hinge',['db']],
- 'Leg Press (Machine)':['Prensa inclinada','cu gl',10,12,1,150,'squat',['lp']],
+ 'Leg Press (Machine)':['Prensa inclinada','cu gl',10,12,1,120,'squat',['lp']],
  'Leg Press Horizontal (Machine)':['Prensa horizontal','cu gl',10,15,1,150,'squat',['lp']],
- 'Single Leg Press (Machine)':['Prensa unilateral','cu gl',10,12,1,120,'squat',['lp']],
+ 'Single Leg Press (Machine)':['Prensa unilateral','cu gl',10,12,1,90,'squat',['lp']],
  'Goblet Box Squat':['Sentadilla goblet a cajón','cu gl',8,12,1,120,'squat',['db','bench']],
  'Step Up (Dumbbell)':['Step-up a cajón bajo','cu gl',8,12,1,90,'squat',['db','bench']],
  'Leg Extension (Machine)':['Extensión de cuádriceps','cu',10,12,1,90,'knee_ext',['lext']],
  'Terminal Knee Extension (Band)':['Extensión terminal con banda','cu',15,20,1,45,'knee_ext',['band']],
  'Seated Leg Curl (Machine)':['Femoral sentado','fe',10,12,0,90,'leg_curl',['lcurl']],
- 'Hip Abduction (Machine)':['Abducción de cadera','gl',12,15,0,75,'abd',['abd']],
+ 'Hip Abduction (Machine)':['Abducción de cadera','gl',12,15,0,90,'abd',['abd']],
  'Band Lateral Walk':['Pasos laterales con banda','gl',12,20,0,60,'abd',['band']],
  'Glute Bridge':['Puente de glúteo','gl fe',12,20,0,60,'abd',[]],
- 'Hip Adduction (Machine)':['Aducción de cadera','ad',12,15,0,75,'add',['add']],
- 'Single Leg Standing Calf Raise (Machine)':['Gemelo de pie unilateral','ge',10,15,0,60,'calf',['calf']],
+ 'Hip Adduction (Machine)':['Aducción de cadera','ad',12,15,0,90,'add',['add']],
+ 'Single Leg Standing Calf Raise (Machine)':['Gemelo de pie unilateral','ge',10,15,0,90,'calf',['calf']],
  'Calf Raise (Dumbbell)':['Gemelo de pie con mancuerna','ge',12,20,0,60,'calf',['db']],
  'Crunch (Machine)':['Crunch en máquina','co',15,25,0,60,'core',['crunchm']],
- 'Cable Crunch':['Crunch en polea','co',12,20,0,60,'core',['cable']],
+ 'Cable Crunch':['Crunch en polea','co',12,20,0,90,'core',['cable']],
  'Dead Bug':['Dead bug','co',8,12,0,45,'core',[]],
  'Hip Thrust (Barbell)':['Hip thrust con barra','gl fe',8,12,0,120,'hip',['bb','bench']],
  'Hip Thrust (Machine)':['Hip thrust en máquina','gl fe',8,12,0,120,'hip',['hipm']],
  'Bulgarian Split Squat':['Sentadilla búlgara','cu gl',8,12,1,120,'squat',['db','bench']],
  'Reverse Lunge (Dumbbell)':['Zancada atrás con mancuernas','cu gl',8,12,1,90,'squat',['db']],
  'Lying Leg Curl (Machine)':['Femoral tumbado','fe',10,12,0,90,'leg_curl',['lcurl']],
- 'Seated Calf Raise':['Gemelo sentado (sóleo)','ge',12,20,0,60,'calf',['calf']],
+ 'Seated Calf Raise':['Gemelo sentado (sóleo)','ge',12,20,0,90,'calf',['calf']],
  'Incline Curl (Dumbbell)':['Curl inclinado con mancuernas','bi',10,12,0,75,'curl',['db','bench']],
 /* Por tiempo: el 9.º dato 't' indica que las "reps" son segundos (rango en segundos) */
  'Wall Sit':['Sentadilla isométrica en pared','cu',30,60,1,60,'iso',[],'t'],
@@ -162,7 +162,7 @@ const EX = {
  'Bodyweight Squat':['Sentadilla sin peso','cu gl',10,20,1,60,'squat',[]],
  'Sit to Stand':['Levantarse de la silla','cu gl',8,15,1,60,'squat',[]],
  'Walking Lunge (Dumbbell)':['Zancadas caminando','cu gl',8,12,1,90,'squat',['db']],
- 'Split Squat (Dumbbell)':['Sentadilla dividida','cu gl',8,12,1,90,'squat',['db']],
+ 'Split Squat (Dumbbell)':['Sentadilla dividida','cu gl',8,12,1,120,'squat',['db']],
  'Lateral Lunge':['Zancada lateral','ad cu gl',8,12,1,75,'squat',[]],
  'Lateral Step Down':['Bajada lateral desde escalón','cu',8,15,1,60,'knee_ext',['box']],
  'Box Jump':['Salto al cajón','cu ge',3,6,1,120,'jump',['box']],
@@ -220,12 +220,12 @@ const ROUTINES = {
      sets:{'Lat Pulldown (Cable)':3,'Single Arm Lat Pulldown':3,'Seated Row (Machine)':3,'T Bar Row':2,'Face Pull':3,'Bicep Curl (Cable)':3,'Cross Body Hammer Curl':3,'Pallof Press':2,'Dead Bug':2}},
  d3:{code:'D3', title:'Pierna · Cuádriceps', warm:'full',
      note:'Split squat: paso largo (≈ la longitud de tu pierna), tronco vertical y 1-2 series de aproximación ligeras; pasa a búlgara tras 3 semanas en verde. ◆ = RIR 2 (deja 2 reps en reserva). Gemelo con pausa de 1-2 s abajo.',
-     ex:['Split Squat (Dumbbell)','Leg Press (Machine)','Leg Extension (Machine)','Hip Abduction (Machine)','Single Leg Standing Calf Raise (Machine)','Cable Crunch'],
-     sets:{'Split Squat (Dumbbell)':3,'Leg Press (Machine)':3,'Leg Extension (Machine)':4,'Hip Abduction (Machine)':3,'Single Leg Standing Calf Raise (Machine)':3,'Cable Crunch':3}},
+     ex:['Split Squat (Dumbbell)','Leg Press (Machine)','Leg Extension (Machine)','Hip Abduction (Machine)','Standing Calf Raise (Machine)','Cable Crunch'],
+     sets:{'Split Squat (Dumbbell)':3,'Leg Press (Machine)':3,'Leg Extension (Machine)':4,'Hip Abduction (Machine)':3,'Standing Calf Raise (Machine)':3,'Cable Crunch':3}},
  d4:{code:'D4', title:'Hombro · Pecho', warm:'short',
-     note:'Press banca: si no hay barra libre, inclinado en Smith. Plancha lateral 2 × 20-30 s por lado.',
+     note:'Press banca: serie top de 3-5 (RIR 1, 1 s de pausa en el pecho) + 3 series al 90 % de 6-8 reps. Calentamiento fijo 20×10 · 40×6 · 60×4 · 70×2. Si no hay barra libre, inclinado en Smith. Plancha lateral 2 × 20-30 s por lado.',
      ex:['Bench Press (Barbell)','Shoulder Press (Dumbbell)','Single Arm Lateral Raise (Cable)','Chest Supported Reverse Fly (Dumbbell)','Cable Crunch','Side Plank'],
-     sets:{'Bench Press (Barbell)':3,'Shoulder Press (Dumbbell)':3,'Single Arm Lateral Raise (Cable)':4,'Chest Supported Reverse Fly (Dumbbell)':3,'Cable Crunch':3,'Side Plank':2}},
+     sets:{'Bench Press (Barbell)':4,'Shoulder Press (Dumbbell)':3,'Single Arm Lateral Raise (Cable)':4,'Chest Supported Reverse Fly (Dumbbell)':3,'Cable Crunch':3,'Side Plank':2}},
  d5:{code:'D5', title:'Pierna · Parte de atrás', warm:'full',
      note:'Las 2 primeras semanas: rumano 3 series y curl 3. El curl pasa a 5 series tras 3 semanas sin molestias. La elevación de tibial es opcional (no hay ensayo que la respalde). Prensa a una pierna con RIR 3.',
      ex:['Romanian Deadlift (Barbell)','Seated Leg Curl (Machine)','Single Leg Press (Machine)','Hip Abduction (Machine)','Hip Adduction (Machine)','Seated Calf Raise','Tibialis Raise'],
@@ -237,23 +237,24 @@ const ROUTINES = {
      sets:{'Leg Swing (Forward)':1,'Leg Swing (Lateral)':1,'Lunge with Rotation':1,'Glute Bridge':1,'Hip 90/90 Switch':1},
      note:'Antes: 2 min de caminata rápida.'},
  mb:{code:'MB', title:'Movilidad B · cadera y lumbar (10 min)', warm:null,
-     ex:['Hip 90/90 Switch','Hip Flexor Stretch','Frog Stretch','Cat Cow','Thoracic Rotation','Deep Squat Hold',"Child's Pose"],
-     sets:{'Hip 90/90 Switch':1,'Hip Flexor Stretch':2,'Frog Stretch':1,'Cat Cow':1,'Thoracic Rotation':2,'Deep Squat Hold':1,"Child's Pose":1}}
+     ex:['Hip 90/90 Switch','Hip Internal Rotation (Windshield Wiper)','Hip Flexor Stretch','Frog Stretch','Cat Cow','Thoracic Rotation','Deep Squat Hold',"Child's Pose"],
+     sets:{'Hip 90/90 Switch':1,'Hip Internal Rotation (Windshield Wiper)':1,'Hip Flexor Stretch':2,'Frog Stretch':1,'Cat Cow':1,'Thoracic Rotation':2,'Deep Squat Hold':1,"Child's Pose":1}}
 };
 const ORDER = ['d1','d2','d3','d4','d5'];
 /* Rangos de repeticiones, descanso (s) y, si hace falta, el aviso de dolor de este plan: [mín, máx, descanso, 0] (descanso 0 = el del ejercicio) */
 const PLAN_RR = {
- 'Incline Bench Press (Dumbbell)':[6,10,150], 'Chest Press (Machine)':[8,12,120], 'Chest Fly (Machine)':[12,15,90], 'Lateral Raise (Dumbbell)':[12,20,75],
- 'Overhead Triceps Extension (Cable)':[10,15,90], 'Triceps Rope Pushdown':[12,15,75],
- 'Lat Pulldown (Cable)':[8,12,120], 'Single Arm Lat Pulldown':[10,14,90], 'Seated Row (Machine)':[8,12,120], 'T Bar Row':[8,12,120], 'Face Pull':[12,15,75],
+ 'Incline Bench Press (Dumbbell)':[6,10,120], 'Chest Press (Machine)':[8,12,120], 'Chest Fly (Machine)':[12,15,90], 'Lateral Raise (Dumbbell)':[12,20,90],
+ 'Overhead Triceps Extension (Cable)':[10,15,90], 'Triceps Rope Pushdown':[12,15,90],
+ 'Lat Pulldown (Cable)':[8,12,120], 'Single Arm Lat Pulldown':[10,14,120], 'Seated Row (Machine)':[8,12,120], 'T Bar Row':[8,12,120], 'Face Pull':[12,15,90],
  'Bicep Curl (Cable)':[8,12,90], 'Cross Body Hammer Curl':[8,12,90], 'Pallof Press':[10,10,45], 'Dead Bug':[8,8,45],
- 'Split Squat (Dumbbell)':[8,10,120], 'Leg Press (Machine)':[8,12,150], 'Leg Extension (Machine)':[10,12,90], 'Hip Abduction (Machine)':[12,15,75],
- 'Single Leg Standing Calf Raise (Machine)':[10,15,75], 'Cable Crunch':[12,15,75],
- 'Bench Press (Barbell)':[6,8,150], 'Shoulder Press (Dumbbell)':[8,12,120], 'Single Arm Lateral Raise (Cable)':[12,20,75], 'Chest Supported Reverse Fly (Dumbbell)':[12,15,75], 'Side Plank':[20,30,45],
- 'Romanian Deadlift (Barbell)':[6,10,150], 'Seated Leg Curl (Machine)':[10,12,90], 'Single Leg Press (Machine)':[10,12,120], 'Hip Adduction (Machine)':[12,15,75],
- 'Seated Calf Raise':[10,15,75], 'Tibialis Raise':[15,20,45],
- 'Hip 90/90 Switch':[8,8,0], 'Hip Flexor Stretch':[30,45,0], 'Frog Stretch':[10,10,0], 'Cat Cow':[8,8,0], 'Thoracic Rotation':[8,8,0], 'Deep Squat Hold':[45,60,0], "Child's Pose":[45,45,0],
- 'Leg Swing (Forward)':[10,10,0], 'Leg Swing (Lateral)':[10,10,0], 'Lunge with Rotation':[5,5,0], 'Glute Bridge':[10,10,0]
+ 'Split Squat (Dumbbell)':[8,10,120], 'Leg Press (Machine)':[8,12,120], 'Leg Extension (Machine)':[10,12,90], 'Hip Abduction (Machine)':[12,15,90],
+ 'Single Leg Standing Calf Raise (Machine)':[10,15,90], 'Cable Crunch':[12,15,90],
+ 'Bench Press (Barbell)':[6,8,150], 'Shoulder Press (Dumbbell)':[8,12,120], 'Single Arm Lateral Raise (Cable)':[12,20,90], 'Chest Supported Reverse Fly (Dumbbell)':[12,15,90], 'Side Plank':[20,30,45],
+ 'Romanian Deadlift (Barbell)':[6,10,150], 'Seated Leg Curl (Machine)':[10,12,90], 'Single Leg Press (Machine)':[10,12,90], 'Hip Adduction (Machine)':[12,15,90],
+ 'Seated Calf Raise':[10,15,90], 'Tibialis Raise':[15,20,60],
+ 'Hip 90/90 Switch':[8,8,0], 'Hip Internal Rotation (Windshield Wiper)':[10,10,0], 'Hip Flexor Stretch':[30,45,0], 'Frog Stretch':[10,10,0], 'Cat Cow':[8,8,0], 'Thoracic Rotation':[8,8,0], 'Deep Squat Hold':[45,60,0], "Child's Pose":[45,45,0],
+ 'Leg Swing (Forward)':[10,10,0], 'Leg Swing (Lateral)':[10,10,0], 'Lunge with Rotation':[5,5,0], 'Glute Bridge':[10,10,0],
+ 'Standing Calf Raise (Machine)':[10,15,90]
 };
 
 const WARM = {
@@ -262,7 +263,7 @@ const WARM = {
 };
 /* Bloque de rodilla (5 min, D1 y D2): ligero, debes terminar como si no hubieras hecho nada */
 const KNEE_BLOCK = ['Sentadilla isométrica en pared · 2 × 45 s','Extensión terminal de rodilla (banda o polea baja) · 2 × 15 por pierna','Bajada lenta desde escalón de 15-20 cm · 2 × 8 por pierna'];
-const PLAN_VERSION = 'v2.0';
+const PLAN_VERSION = 'v2.2';
 /* Series fijadas por el plan (si no aparece, 3) */
 const planSets = (n, def = 3, key = null) => {
   if (key && ROUTINES[key] && ROUTINES[key].ex.includes(n)) return (ROUTINES[key].sets && ROUTINES[key].sets[n]) || def;
@@ -271,7 +272,7 @@ const planSets = (n, def = 3, key = null) => {
 };
 /* Movilidad A y B no cuentan como sesión de pesas */
 /* ◆ Ejercicios que cargan la rodilla: RIR 2 (la prensa a una pierna, RIR 3) */
-const KNEE_RIR = {'Split Squat (Dumbbell)':2,'Leg Press (Machine)':2,'Leg Extension (Machine)':2,'Single Leg Press (Machine)':3};
+const KNEE_RIR = {'Romanian Deadlift (Barbell)':2,'Split Squat (Dumbbell)':2,'Leg Press (Machine)':2,'Leg Extension (Machine)':2,'Single Leg Press (Machine)':3};
 /* Rango de repeticiones para mostrar: «10» si mín y máx coinciden */
 const rg = m => m.lo === m.hi ? `${m.lo}` : `${m.lo}-${m.hi}`;
 const MOB_KEYS = ['ma','mb'];
